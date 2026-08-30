@@ -1,15 +1,6 @@
 # Expresión diferencial entre poblaciones de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
 
-<!--
-AYUDA:
-Escriban el nombre del proyecto. Debe ser breve, específico y fácil de identificar.
-Puede coincidir con el nombre del repositorio.
-
-EJEMPLO:
-# Comparación de genes de resistencia antimicrobiana
--->
-
-Se realizo analisis comparativo sobre Anopheles gambiae resistente y no resistente a insecticidas
+Se realizó análisis comparativo sobre Anopheles gambiae resistente y no resistente a insecticidas
 
 
 Para conocer el planteamiento, las preguntas de investigación, la metodología y
@@ -41,16 +32,17 @@ EJEMPLO:
 ## Estructura del repositorio
 
 ```text
-proyecto/
-├── data/           # Datos de ejemplo o archivos pequeños
-├── docs/           # Reporte y documentación
-├── notebooks/      # Análisis exploratorios
-├── results/        # Tablas y figuras generadas
-├── src/            # Código fuente
-├── tests/          # Pruebas
-├── CITATION.cff    # Información para citar el software
-├── LICENSE         # Licencia
-└── README.md       # Introducción y guía rápida de uso
+├───data       
+│   ├───curated
+│   │   ├───resistent
+│   │   └───susceptible
+│   └───raw
+│       ├───resistent
+│       └───susceptible
+├───docs
+├───results
+├───src
+└───tests
 ```
 
 <!--

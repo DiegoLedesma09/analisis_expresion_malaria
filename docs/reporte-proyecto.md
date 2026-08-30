@@ -1,4 +1,4 @@
-# Expresión diferencial entre poblaciones de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
+# Expresión diferencial entre poblaciones de *Anopheles gambiae*, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
 
 ## Información general
 
@@ -13,7 +13,7 @@
 
 ## Resumen del proyecto
 
-Se analizarán disponibles en NCBI para identificar y comparar genes de resistencia. 
+Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a insecticidas frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
 
 ## 1. Contexto y antecedentes
 
@@ -26,7 +26,14 @@ EJEMPLO: La resistencia antimicrobiana es un problema de salud pública. Aunque
 existen bases especializadas, comparar varios genomas requiere integrar datos
 procedentes de distintos archivos. -->
 
-[Describan aquí el contexto y los antecedentes.]
+La malaria (o paludismo) es una enfermedad causada por un parásito Plasmodium, el cual es trasmitido por la picadura de un mosquito infectado. Sólo el género anófeles del mosquito transmite la malaria. Los síntomas de esta enfermedad pueden incluir fiebre, vómito y/o dolor de cabeza. La forma clásica de manifestación en el organismo es fiebre, sudoración y escalofríos, que aparecen 10 a 15 días después de la picadura del mosquito. 
+
+En muchas zonas se están reforzando las medidas de control de los mosquitos, pero hay obstáculos importantes, tales como:
+- El aumento de la resistencia de los mosquitos a insecticidas clave como el DDT y los piretroides, sobre todo en África. 
+- La inexistencia de insecticidas eficaces alternativos. 
+
+No hay insecticidas alternativos que sean igual de eficaces y eficientes que el DDT y los piretroides, y el desarrollo de nuevos plaguicidas es una empresa cara y a largo plazo. Son imprescindibles prácticas de control de los vectores que hagan un uso juicioso de los insecticidas.
+La detección de la resistencia a los insecticidas debe ser parte integral de las medidas nacionales de control, con el fin de garantizar que se están utilizando los métodos más eficaces de control de los vectores.
 
 ## 2. Planteamiento del problema
 
@@ -36,7 +43,7 @@ problema con la herramienta ni con la solución.
 EJEMPLO: La identificación manual de genes de resistencia en varios genomas es
 lenta, propensa a errores y difícil de reproducir. -->
 
-[Describan aquí el problema.]
+A pesar de que la resistencia a insecticidas en Anopheles gambiae es un problema crítico para el control de la malaria, los mecanismos moleculares no están completamente caracterizados, en parte porque los mecanismos varían entre poblaciones geográficas 
 
 ## 3. Justificación
 
@@ -45,7 +52,9 @@ relevancia biológica, científica, técnica o social y quién podría beneficia
 EJEMPLO: Un flujo automatizado reducirá errores y permitirá repetir el análisis
 con los mismos datos, parámetros y versiones del software. -->
 
-[Justifiquen aquí el proyecto.]
+Este proyecto es relevante por las siguientes razones:
+
+- 
 
 ## 4. Objetivo general
 
@@ -54,7 +63,7 @@ ser alcanzable durante el semestre.
 EJEMPLO: Desarrollar un flujo reproducible en Python para identificar y comparar
 genes de resistencia en un conjunto de genomas de E. coli. -->
 
-[Escriban aquí el objetivo general.]
+Identificar genes con expresión diferencial entre poblaciones de Anopheles gambiae resistentes y susceptibles a insecticidas mediante el análisis de datos transcriptómicos
 
 
 ## 5. Preguntas de investigación
@@ -279,7 +288,7 @@ EJEMPLO: Blattner, F. R. et al. (1997). The complete genome sequence of
 Escherichia coli K-12. Science, 277(5331), 1453–1462.
 https://doi.org/10.1126/science.277.5331.1453 -->
 
-1. [Referencia 1]
+1. Organización Panamericana de la Salud. (s.f.). Malaria. Recuperado el 29 de agosto de 2026, de https://www.paho.org/es/temas/malaria
 2. [Referencia 2]
 
 

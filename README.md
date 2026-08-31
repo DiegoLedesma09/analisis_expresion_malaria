@@ -1,20 +1,17 @@
-# Expresión diferencial entre poblaciones de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
+# Expresión diferencial entre organismos de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
 
-Se realizó análisis comparativo sobre Anopheles gambiae resistente y no resistente a insecticidas
+
+
+Se realizo analisis comparativo sobre datos de expresión acerca de organismos de Anopheles gambiae resistentes y no resistentes a insecticidas
 
 
 Para conocer el planteamiento, las preguntas de investigación, la metodología y
 los resultados, consulta el [reporte de proyecto](docs/reporte-proyecto.md).
 
-<!--
-AYUDA:
-Ajusten la ruta del enlace si el reporte tiene otro nombre o se encuentra en otra
-carpeta. Comprueben que el enlace funcione desde GitHub.
--->
-
 ## Funcionalidades
 
-- [issues 1: diferenciar ]
+# ATENCION: AUN NO DEFINIMOS LA TOTALIDAD DE LAS FUNCIONALIDADES, ESTO SE IRÁ ACTUALIZANDO
+- [Funcionalidad disponible 1]
 - [Funcionalidad disponible 2]
 - [Funcionalidad disponible 3]
 
@@ -32,31 +29,29 @@ EJEMPLO:
 ## Estructura del repositorio
 
 ```text
-├───data       
-│   ├───curated
-│   │   ├───resistent
-│   │   └───susceptible
-│   └───raw
-│       ├───resistent
-│       └───susceptible
-├───docs
-├───results
-├───src
-└───tests
+proyecto/
+├── data/            # Datos de ejemplo o archivos pequeños
+├──── curated/       # Datos curados
+├────── resistent/   # Datos de organismo resistente curados
+├────── susceptible/ # Datos de organismo susceptible curados
+├──── raw/           # Datos crudos
+├────── resistent/   # Datos de organismo resistente crudos
+├────── susceptible/ # Datos de organismo susceptible crudos
+├── docs/            # Reporte y documentación
+├── results/         # Tablas y figuras generadas
+├── src/             # Código fuente
+├── tests/           # Pruebas
+├── CITATION.cff     # Información para citar el software
+├── LICENSE          # Licencia
+└── README.md        # Introducción y guía rápida de uso
 ```
-
-<!--
-AYUDA:
-Modifiquen el árbol para que represente su repositorio real y eliminen carpetas
-que no utilicen. Expliquen solamente los elementos principales; no enumeren cada
-archivo. Eviten almacenar datos grandes, usuarios/contraseñas o información sensible.
--->
+>
 
 ## Requisitos
 
-- [Lenguaje y versión]
-- [Herramienta o biblioteca indispensable]
-- [Recurso computacional o condición de acceso]
+- Python 3.14.3
+- [Herramienta o biblioteca indispensable] # PENDIENTE
+- [Recurso computacional o condición de acceso] # PENDIENTE
 
 <!--
 AYUDA:
@@ -72,7 +67,7 @@ EJEMPLO:
 No registren usuarios, contraseñas, tokens ni llaves privadas-->
 
 
-## Datos
+## Datos # PENDIENTE
 
 [Expliquen cómo obtener los datos y dónde colocarlos.]
 
@@ -95,7 +90,7 @@ de selección se documentan en docs/reporte-proyecto.md.
 La procedencia y características detalladas se describen en el
 [reporte del proyecto](docs/reporte-proyecto.md).
 
-## Uso
+## Uso #PENDIENTE
 
 [Expliquen qué hace el siguiente comando y qué entradas necesita.]
 
@@ -119,7 +114,7 @@ Para analizar los identificadores incluidos en data/accessions.txt:
 El comando generará results/gene_matrix.csv y results/heatmap.png.
 -->
 
-## Reproducción de resultados
+## Reproducción de resultados # PENDIENTE
 
 Ejecuten los siguientes pasos en el orden indicado:
 
@@ -144,7 +139,7 @@ figuras utilizadas en el reporte. Sus nombres esperados deben indicarse aquí.
 -->
 
 
-## Documentación
+## Documentación #PENDIENTE
 
 - [Reporte del proyecto](docs/reporte-proyecto.md)
 - [Información para citar el software](CITATION.cff)
@@ -176,7 +171,7 @@ EJEMPLO:
 - María García — documentación e integración.
 -->
 
-## Citación
+## Citación #PENDIENTE
 
 Si utilizas este software, consulta [CITATION.cff](CITATION.cff) o la opción
 **Cite this repository** de GitHub.
@@ -192,20 +187,12 @@ La forma recomendada de citar la versión v1.0.0 se encuentra en CITATION.cff.
 
 ## Licencia
 
-[Indiquen el nombre de la licencia.] Consulta [LICENSE](LICENSE) para conocer
+### **MIT License**
+Consulta [LICENSE](LICENSE) para conocer
 los términos de uso.
 
-<!--
-AYUDA:
-Especifiquen la licencia del código y asegúrense de incluir el archivo LICENSE.
-Las condiciones de uso de los datos pueden ser distintas y deben indicarse en la
-sección Datos y en el reporte.
 
-EJEMPLO:
-El código se distribuye bajo la licencia MIT. Consulta LICENSE.
--->
-
-## Agradecimientos
+## Agradecimientos #PENDIENTE
 
 [Incluyan reconocimientos institucionales o académicos]
 

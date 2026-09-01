@@ -71,8 +71,6 @@ No registren usuarios, contraseñas, tokens ni llaves privadas-->
 
 ## Datos
 
-[Expliquen cómo obtener los datos y dónde colocarlos.]
-
 <!--
 AYUDA:
 Indiquen la fuente, el comando o enlace de descarga y la carpeta de destino. No
@@ -91,7 +89,19 @@ de selección se documentan en docs/reporte-proyecto.md.
 
 Los datos proceden de *NCBI Sequence Read Archive (SRA)*, asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z). Con el identificador: *SRP052073*
 
-# Pendiente: Se ejecutará un módulo del script que busca los datos usando Bio.Entrez, pero aún no se ha determinado el script, por lo que, aún no tengo el uso de éste.
+Estos datos serán situados en las carpetas correspondientes:
+
+```text
+proyecto/
+├── data/            # Datos de ejemplo o archivos pequeños
+├──── raw/           # Datos crudos
+├────── resistent/   # Datos de organismo resistente crudos
+├────── susceptible/ # Datos de organismo susceptible crudos
+```
+
+Uso sugerido en la terminal:
+
+    python src/download_data.py
 
 Los archivos se guardarán en data/raw/. Los identificadores, versiones y criterios de selección se documentan en docs/reporte-proyecto.md.
 
@@ -200,7 +210,7 @@ La forma recomendada de citar la versión v1.0.0 se encuentra en CITATION.cff.
 
 Consulta MIT License [LICENSE](LICENSE) para conocer los términos de uso
 
-## Agradecimientos #PENDIENTE
+## Agradecimientos
 
 Agradezco a mi gata Daysi por su odio hacia mi persona. Me motiva el hecho de acabar con su paciencia para seguir adelante
 

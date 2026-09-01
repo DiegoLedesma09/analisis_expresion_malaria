@@ -47,6 +47,9 @@ lenta, propensa a errores y difícil de reproducir. -->
 
 A pesar de que la resistencia a insecticidas en Anopheles gambiae es un problema crítico para el control de la malaria, los mecanismos moleculares no están completamente caracterizados, en parte porque los mecanismos varían entre poblaciones geográficas 
 
+Ademas de que Anopheles gambiae esta generando nuevos mecanismos para inhibir la acción del insecticida estos generan un mayor conflicto al caracterizar la vía que usan
+
+
 ## 3. Justificación
 
 <!-- AYUDA: Expliquen por qué vale la pena realizar el proyecto, cuál es su

@@ -26,10 +26,12 @@ EJEMPLO: La resistencia antimicrobiana es un problema de salud pública. Aunque
 existen bases especializadas, comparar varios genomas requiere integrar datos
 procedentes de distintos archivos. -->
 
-La malaria (o paludismo) es una enfermedad causada por un parásito Plasmodium, el cual es trasmitido por la picadura de un mosquito infectado. Sólo el género anófeles del mosquito transmite la malaria. Los síntomas de esta enfermedad pueden incluir fiebre, vómito y/o dolor de cabeza. La forma clásica de manifestación en el organismo es fiebre, sudoración y escalofríos, que aparecen 10 a 15 días después de la picadura del mosquito. 
+La malaria (o paludismo) es una enfermedad causada por un parásito Plasmodium, el cual es trasmitido por la picadura de un mosquito infectado. Sólo el género anófeles del mosquito transmite la malaria. Los síntomas de esta enfermedad pueden incluir fiebre, vómito y/o dolor de cabeza. La forma clásica de manifestación en el organismo es fiebre, sudoración y escalofríos, que aparecen 10 a 15 días después de la picadura del mosquito. Dado a esto es un problema de salud publica en África subsahariana con su morbilidad y mortalidad asociada afecta esta población.
+
+El control de la malaria se basa en el uso de intervenciones basadas en productos químicos en forma de mosquiteros tratados con insecticida de larga duración y pulverización residual en interiores.
 
 En muchas zonas se están reforzando las medidas de control de los mosquitos, pero hay obstáculos importantes, tales como:
-- El aumento de la resistencia de los mosquitos a insecticidas clave como el DDT y los piretroides, sobre todo en África. 
+- El desarrollo de resistencia a insecticidas (IR) por parte del mosquito hacia los más clave como el DDT y los piretroides, sobre todo en África. 
 - La inexistencia de insecticidas eficaces alternativos. 
 
 No hay insecticidas alternativos que sean igual de eficaces y eficientes que el DDT y los piretroides, y el desarrollo de nuevos plaguicidas es una empresa cara y a largo plazo. Son imprescindibles prácticas de control de los vectores que hagan un uso juicioso de los insecticidas.
@@ -76,12 +78,12 @@ de presencia y ausencia obtenida de las anotaciones. -->
 
 ### Pregunta 1
 
-**Pregunta:** [Escriban la pregunta.]  
+**Pregunta:** ¿Qué genes se sobre expresan en mosquitos resistentes en presencia de insecticidas a comparación a los susceptibles?  
 **Evidencia necesaria:** [Datos o resultados que permitirán responderla.]
 
 ### Pregunta 2
 
-**Pregunta:** [Escriban la pregunta.]  
+**Pregunta:** Relacionar los genes que encontremos con algún rasgo que les confiera la resistencia
 **Evidencia necesaria:** [Datos o resultados que permitirán responderla.]
 
 ## 6. Alcance y limitaciones
@@ -101,7 +103,7 @@ utilizarán datos clínicos ni se realizará validación experimental. -->
 
 ### Limitaciones conocidas
 
-- [Limitación]
+- Podriamos encontrar genes que no esten asociados con una función pero tengan una sobreexpresión.
 
 ## 7. Propuesta de solución
 

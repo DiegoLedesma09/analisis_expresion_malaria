@@ -1,19 +1,21 @@
 # Expresión diferencial entre organismos de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
 
-
-
-Se realizo analisis comparativo sobre datos de expresión acerca de organismos de Anopheles gambiae resistentes y no resistentes a insecticidas
-
+Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a insecticidas frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
 
 Para conocer el planteamiento, las preguntas de investigación, la metodología y
 los resultados, consulta el [reporte de proyecto](docs/reporte-proyecto.md).
 
 ## Funcionalidades
 
-# ATENCION: AUN NO DEFINIMOS LA TOTALIDAD DE LAS FUNCIONALIDADES, ESTO SE IRÁ ACTUALIZANDO
-- [Funcionalidad disponible 1]
-- [Funcionalidad disponible 2]
-- [Funcionalidad disponible 3]
+- Descarga de los datos
+- Control de calidad de las lecturas crudas.
+- Trimming y limpieza
+- Descarga del genoma de referencia y anotación
+- Alineamiento del genoma 
+- Cuantificación de expresión
+- Control de calidad post-alineamiento
+- Análisis de expresión diferencial
+- Anotación funcional y enriquecimiento
 
 <!--
 AYUDA:
@@ -50,8 +52,8 @@ proyecto/
 ## Requisitos
 
 - Python 3.14.3
-- [Herramienta o biblioteca indispensable] # PENDIENTE
-- [Recurso computacional o condición de acceso] # PENDIENTE
+- Git
+- Conexión a internet para la descarga de datos
 
 <!--
 AYUDA:
@@ -86,6 +88,12 @@ Los datos proceden de NCBI RefSeq. Para descargarlos, ejecuta:
 Los archivos se guardarán en data/raw/. Los identificadores, versiones y criterios
 de selección se documentan en docs/reporte-proyecto.md.
 -->
+
+Los datos proceden de *NCBI Sequence Read Archive (SRA)*, asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z). Con el identificador: *SRP052073*
+
+# Pendiente: Se ejecutará un módulo del script que busca los datos usando Bio.Entrez, pero aún no se ha determinado el script, por lo que, aún no tengo el uso de éste.
+
+Los archivos se guardarán en data/raw/. Los identificadores, versiones y criterios de selección se documentan en docs/reporte-proyecto.md.
 
 La procedencia y características detalladas se describen en el
 [reporte del proyecto](docs/reporte-proyecto.md).
@@ -141,8 +149,8 @@ figuras utilizadas en el reporte. Sus nombres esperados deben indicarse aquí.
 
 ## Documentación #PENDIENTE
 
-- [Reporte del proyecto](docs/reporte-proyecto.md)
-- [Información para citar el software](CITATION.cff)
+- El reporte contiene el problema, las preguntas, la metodología y los resultados se encuentra en: (docs/reporte-proyecto.md)
+- El reporte acerca de la manera correcta de citar este artículo se encuentra en: (CITATION.cff)
 
 <!--
 AYUDA:
@@ -152,6 +160,7 @@ otros documentos sólo si evitan que el README sea demasiado extenso.
 EJEMPLO:
 - El reporte contiene el problema, las preguntas, la metodología y los resultados.
 -->
+
 
 ## Equipo
 
@@ -188,13 +197,12 @@ La forma recomendada de citar la versión v1.0.0 se encuentra en CITATION.cff.
 ## Licencia
 
 ### **MIT License**
-Consulta [LICENSE](LICENSE) para conocer
-los términos de uso.
 
+Consulta MIT License (LICENSE) para conocer los términos de uso
 
 ## Agradecimientos #PENDIENTE
 
-[Incluyan reconocimientos institucionales o académicos]
+Agradezco a mi gata Daysi por su odio hacia mi persona. Me motiva el hecho de acabar con su paciencia para seguir adelante
 
 <!--
 AYUDA:

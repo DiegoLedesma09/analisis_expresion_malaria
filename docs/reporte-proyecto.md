@@ -54,9 +54,16 @@ relevancia biológica, científica, técnica o social y quién podría beneficia
 EJEMPLO: Un flujo automatizado reducirá errores y permitirá repetir el análisis
 con los mismos datos, parámetros y versiones del software. -->
 
-Este proyecto es relevante por las siguientes razones:
+La malaria es una enfermedad contagiosa en vectores cómunes en zonas del sudeste Africano,
+la prevalencia del vector de transmición ha sido una problemática que produjo la creación
+de insecticidas hacia ellos, pero debido a fuerzas de evolución, dichos organismos han evolucionado,
+de tal manera que son resistentes a insecticidas cómunes. En este trabajo se busca encontrar los 
+genes que promueven esta resistencia.
 
-- 
+El análsis comparativo de datasets transcriptómicos requiere de un tratamiento estricto
+de errores, por lo que, repetir el análisis transcriptómico con un tratamiento de batch
+error podemos obtener posteriormente un perfil descriptivo basado en los genes de alta
+expresividad en el trabajo.
 
 ## 4. Objetivo general
 
@@ -65,8 +72,8 @@ ser alcanzable durante el semestre.
 EJEMPLO: Desarrollar un flujo reproducible en Python para identificar y comparar
 genes de resistencia en un conjunto de genomas de E. coli. -->
 
-Identificar genes con expresión diferencial entre poblaciones de Anopheles gambiae resistentes y susceptibles a insecticidas mediante el análisis de datos transcriptómicos
-
+Tratar datos provenientes de archivos FASTA, identificar datos de expresión transcriptómicos y
+posteriormente identificar los genes que proveen la resistencia a insecticidas.
 
 ## 5. Preguntas de investigación
 
@@ -79,12 +86,12 @@ de presencia y ausencia obtenida de las anotaciones. -->
 ### Pregunta 1
 
 **Pregunta:** ¿Qué genes se sobre expresan en mosquitos resistentes en presencia de insecticidas a comparación a los susceptibles?  
-**Evidencia necesaria:** [Datos o resultados que permitirán responderla.]
+**Evidencia necesaria:** Genes sobreexpresados en las lecturas de los archivos FASTA en los organismos resistentes en presencia de insecticidas en comparación a organismos susceptibles
 
 ### Pregunta 2
 
 **Pregunta:** Relacionar los genes que encontremos con algún rasgo que les confiera la resistencia
-**Evidencia necesaria:** [Datos o resultados que permitirán responderla.]
+**Evidencia necesaria:** Relacionar con deSeq2 para identificar los genes según los datos transcriptómicos
 
 ## 6. Alcance y limitaciones
 
@@ -95,15 +102,21 @@ utilizarán datos clínicos ni se realizará validación experimental. -->
 
 ### Incluye
 
-- [Elemento incluido]
+- Incluye un análisis de 9 datasets de datos transcriptómicos de *Anopheles gambiae*, con organismos susceptibles y resistentes obtenidos de campo, así como organimos resistentes obtenidos de laboratorio.
+- Incluye un estudio de datos de expresión de los datos transcriptómicos
+- Incluye un enfoque con genes con el fin de una caracterización
+- Los resultados esperados son una lista de genes que promuevan la resistencia a insecticidas.
 
 ### No incluye
 
-- [Elemento fuera del alcance]
+- No incluye un análisis comparativo poblacional de metagenomas
+- No incluye la secuenciación de los datos ni la obtención de los organismos
 
 ### Limitaciones conocidas
 
 - Podriamos encontrar genes que no esten asociados con una función pero tengan una sobreexpresión.
+- Podríamos tener datasets de mala calidad
+- El análisis se realizará en un plazo de 3 meses
 
 ## 7. Propuesta de solución
 
@@ -113,7 +126,17 @@ tecnologías.
 EJEMPLO: Un programa modular recibirá identificadores, descargará archivos,
 extraerá genes, almacenará resultados y generará visualizaciones. -->
 
-[Describan aquí la solución propuesta.]
+Un programa modular que hará las siguientes funciones:
+
+- Descarga de los datos
+- Control de calidad de las lecturas crudas.
+- Trimming y limpieza
+- Descarga del genoma de referencia y anotación
+- Alineamiento del genoma 
+- Cuantificación de expresión
+- Control de calidad post-alineamiento
+- Análisis de expresión diferencial
+- Anotación funcional y enriquecimiento
 
 ### 7.1 Resultado o producto esperado
 
@@ -122,8 +145,7 @@ base de datos, visualizaciones u otro producto.
 EJEMPLO: Repositorio ejecutable con scripts, datos de prueba, documentación,
 tabla comparativa y figuras regenerables. -->
 
-[Describan aquí el producto.]
-
+Repositorio ejecutable con scripts, casos prueba, documentación, figuras regenerables, tests y datos accesibles.
 
 ## 8. Datos
 
@@ -135,7 +157,9 @@ EJEMPLO: NCBI RefSeq, GCF_000005845.2, consultado el dd/mm/aaaa. -->
 
 | Fuente | Identificador o versión | URL | Fecha de consulta | Licencia o condiciones |
 |:--|:--|:--|:--|:--|
-| [Fuente] | [Identificador] | [URL] | [dd/mm/aaaa] | [Condiciones] |
+| NCBI Sequence Read Archive (SRA), asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z) | SRP052073 | URL: https://www.ncbi.nlm.nih.gov/sra/?term=SRP052073 | Consultado el 01/09/2026 | Mosquitos de campo resistentes a deltametrina (Provincia Occidental de Kenia)
+Mosquitos de campo susceptibles a deltametrina (misma región)
+Cepa de laboratorio Kisumu (susceptible de referencia, altamente endogámica) |
 
 ### 8.2 Características de los datos
 
@@ -143,7 +167,46 @@ EJEMPLO: NCBI RefSeq, GCF_000005845.2, consultado el dd/mm/aaaa. -->
 atributos necesarios para interpretar los datos.
 EJEMPLO: Archivos FASTA y GFF3 de 20 genomas completos de E. coli. -->
 
-[Describan aquí los datos.]
+*Organismo y taxonomía*
+
+Anopheles gambiae (forma S)
+
+*Diseño experimental / grupos*
+
+3 condiciones: resistente a deltametrina (campo), susceptible a deltametrina (campo), cepa Kisumu (susceptible de laboratorio, referencia)
+9 librerías de RNA-seq en total
+Cada librería = pool de ARN de 12 mosquitos individuales (no son mosquitos individuales secuenciados por separado)
+
+*Origen geográfico*
+
+Larvas colectadas en la Provincia Occidental de Kenia: localidades de Bungoma, Busia y Emutete
+Año de colecta: 2012
+Criadas hasta adultez en insectario del KEMRI, Kisumu
+
+*Fenotipado*
+
+WHO tube test estándar con deltametrina (0.05%)
+Resistentes: vivos 24h post-exposición
+Susceptibles: derribados tempranamente (knock-down), sin signos de recuperación
+Genotipado individual adicional de la mutación kdr (L1014S) en el gen para
+
+*Datos moleculares*
+
+Tipo de ensayo: RNA-seq
+Plataforma: Illumina HiSeq2500
+Tipo de lectura: pareada (paired-end)
+Longitud de lectura: 100 pb por extremo
+Extracción de ARN: TRIzol
+Lugar de secuenciación: DNA Technologies and Expression Analysis Core, UC Davis Genome Center
+
+*Referencia usada en el análisis original*
+
+Ensamblaje: VectorBase AgamP3
+Anotación: AgamP3.7
+
+Profundidad de secuenciación
+
+Entre 124,918,668 y 154,463,158 lecturas alineadas por librería, sin diferencias significativas entre muestras
 
 
 ### 8.3 Organización de los datos
@@ -157,7 +220,11 @@ EJEMPLO: data/raw conserva originales y data/processed los derivados. -->
 proyecto/
 ├── data/
 │   ├── raw/
-│   └── processed/
+|      ├── resistent/
+|      ├── susceptible/
+│   ├── curated/
+|      ├── resistent/
+|      ├── susceptible/
 ├── docs/
 ├── notebooks/
 ├── results/
@@ -173,7 +240,7 @@ EJEMPLO: En GFF3, seqid identifica la secuencia; type indica gene, CDS, etc. -->
 
 | Archivo o conjunto | Campo/columna | Tipo | Descripción | Valores o unidades |
 |:--|:--|:--|:--|:--|
-| [Archivo] | [Campo] | [Tipo] | [Descripción] | [Valores] |
+| SRR1763908.fasta | - | FASTA | Lecturas transcriptómicas | Lecturas de transcriptoma |
 
 ## 9. Metodología
 
@@ -186,9 +253,12 @@ actualícenla con lo que realmente ejecutaron, incluidos parámetros y decisione
 de resultados. Relacionen cada etapa con una pregunta u objetivo.
 EJEMPLO: descarga, validación, transformación, análisis, visualización y pruebas. -->
 
-1. [Etapa 1]
-2. [Etapa 2]
-3. [Etapa 3]
+1. Descarga de los datos
+2. Control de calidad
+3. Alineamiento del genoma
+4. Cuantificación de expresión
+5. Análisis de expresión diferencial
+6. Anotación funcional
 
 ### 9.2 Herramientas y tecnologías
 
@@ -199,8 +269,12 @@ visualización. -->
 
 | Herramienta | Versión | Propósito |
 |:--|:--|:--|
-| [Herramienta] | [Versión] | [Uso] |
-
+| FASTQC (MultiQC) | v0.12.1. | Revisa calidad por base, contenido de adaptadores, duplicación y contenido de GC antes de seguir. |
+| Trimmomatic | v0.41.| Eliminar adaptadores Illumina y bases de baja calidad en los extremos de las lecturas. |
+| HISAT2 o STAR | v2.2.3 / v2.7.11b | Alinea las lecturas limpias splice-aware |
+| featureCounts | v2.1.1 | Cuenta lecturas por gen |
+| DESeq2 | v1.52.0  | Comparar resistentes vs. susceptibles, obteniendo log2FoldChange y p-valores ajustados (FDR) por gen |
+| Profiler | v0.2.4. | Identificar categorías GO/KEGG sobrerrepresentadas | 
 
 ### 9.3 Estrategia de validación
 
@@ -209,7 +283,7 @@ datos conocidos, comparación con otra herramienta o revisión manual.
 EJEMPLO: Se compararán cinco anotaciones conocidas y se probarán entradas
 válidas, identificadores inexistentes y archivos incompletos. -->
 
-[Describan aquí la validación.]
+Se realizarán pruebas con datos conocidos, con el fin de reconocer la validez de nuestros pasos.
 
 ## 10. Plan de trabajo
 

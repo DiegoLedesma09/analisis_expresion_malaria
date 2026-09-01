@@ -69,7 +69,7 @@ EJEMPLO:
 No registren usuarios, contraseñas, tokens ni llaves privadas-->
 
 
-## Datos # PENDIENTE
+## Datos
 
 [Expliquen cómo obtener los datos y dónde colocarlos.]
 
@@ -147,10 +147,10 @@ figuras utilizadas en el reporte. Sus nombres esperados deben indicarse aquí.
 -->
 
 
-## Documentación #PENDIENTE
+## Documentación
 
-- El reporte contiene el problema, las preguntas, la metodología y los resultados se encuentra en: (docs/reporte-proyecto.md)
-- El reporte acerca de la manera correcta de citar este artículo se encuentra en: (CITATION.cff)
+- El reporte contiene el problema, las preguntas, la metodología y los resultados se encuentra en: [Reporte del proyecto](docs/reporte-proyecto.md)
+- El reporte acerca de la manera correcta de citar este artículo se encuentra en: [CITATION](CITATION.cff)
 
 <!--
 AYUDA:
@@ -198,7 +198,7 @@ La forma recomendada de citar la versión v1.0.0 se encuentra en CITATION.cff.
 
 ### **MIT License**
 
-Consulta MIT License (LICENSE) para conocer los términos de uso
+Consulta MIT License [LICENSE](LICENSE) para conocer los términos de uso
 
 ## Agradecimientos #PENDIENTE
 

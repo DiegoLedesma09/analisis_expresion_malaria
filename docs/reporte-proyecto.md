@@ -8,7 +8,7 @@
 | Integrante 2 | Ledesma Gallegos Diego  diegolg@lcg.unam.mx |
 | Integrante 3 | Muñoz Muñoz Luis Angel  luismm@lcg.unam.mx |
 | Fecha de creación | 25/08/2026 |
-| Última actualización | 25/08/2026 |
+| Última actualización | 19/09/2026 |
 | Repositorio | https://github.com/DiegoLedesma09/analisis_expresion_malaria.git |
 
 ## Resumen del proyecto
@@ -227,6 +227,7 @@ proyecto/
 |      ├── resistent/
 |      ├── susceptible/
 ├── docs/
+├── envs/
 ├── notebooks/
 ├── results/
 ├── src/
@@ -267,6 +268,16 @@ EJEMPLO: descarga, validación, transformación, análisis, visualización y pru
 propósito. No incluyan credenciales.
 EJEMPLO: Python 3.x; Biopython para leer formatos biológicos; Seaborn para
 visualización. -->
+
+Para correr el programa, es necesaria la activación del ambiente **malaria_env**, presente en la carpeta **envs/**.
+El siguiente bloque de código explica cómo activar el ambiente.
+
+```bash
+conda env create -f envs/malaria_env.yml
+conda activate malaria_env
+```
+
+Las herramientas contenidas en el ambiente son las siguientes:
 
 | Herramienta | Versión | Propósito |
 |:--|:--|:--|

@@ -39,6 +39,7 @@ proyecto/
 ├──── raw/           # Datos crudos
 ├────── resistent/   # Datos de organismo resistente crudos
 ├────── susceptible/ # Datos de organismo susceptible crudos
+├── envs/            # Ambiente del proyecto
 ├── docs/            # Reporte y documentación
 ├── results/         # Tablas y figuras generadas
 ├── src/             # Código fuente

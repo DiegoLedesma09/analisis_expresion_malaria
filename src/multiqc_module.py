@@ -87,6 +87,7 @@ def classify_sample(df_qc):
 
         banderas = {col: row[col] for col in FASTQC_FLAG_COLUMNS}
         banderas["overall"] = banderas["adapter_content"]
+        banderas["grupo"] = row["grupo"]
 
         dict_qc[sample] = banderas
 

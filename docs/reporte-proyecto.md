@@ -378,9 +378,7 @@ https://doi.org/10.1126/science.277.5331.1453 -->
 
 1. Organización Panamericana de la Salud. (s.f.). Malaria. Recuperado el 29 de agosto de 2026, de https://www.paho.org/es/temas/malaria
 2. Bonizzoni M, Ochomo E, Dunn WA, Britton M, Afrane Y, Zhou G, Hartsel J, Lee MC, Xu J, Githeko A, Fass J, Yan G. RNA-seq analyses of changes in the Anopheles gambiae transcriptome associated with resistance to pyrethroids in Kenya: identification of candidate-resistance genes and candidate-resistance SNPs. Parasit Vectors. 2015 Sep 17;8:474. doi: 10.1186/s13071-015-1083-z. PMID: 26381877; PMCID: PMC4574070.
-3. Zoh, M.G., Bonneville, JM., Laporte, F. et al. Deltamethrin and transfluthrin select for distinct transcriptomic responses in the malaria vector Anopheles gambiae. Malar J 22, 256 (2023). https
-
-://doi.org/10.1186/s12936-023-04673-5
+3. Zoh, M.G., Bonneville, JM., Laporte, F. et al. Deltamethrin and transfluthrin select for distinct transcriptomic responses in the malaria vector Anopheles gambiae. Malar J 22, 256 (2023). https://doi.org/10.1186/s12936-023-04673-5
 4. Saizonou H, Impoinvil LM, Derilus D, Omoke D, Okeyo S, Dada N, Corredor C, Mulder N, Lenhart A, Ochomo E, Djogbénou LS. Transcriptomic analysis of Anopheles gambiae from Benin reveals overexpression of salivary and cuticular proteins associated with cross-resistance to pyrethroids and organophosphates. BMC Genomics. 2024 Apr 6;25(1):348. doi: 10.1186/s12864-024-10261-x. PMID: 38582836; PMCID: PMC10998338.
 
 

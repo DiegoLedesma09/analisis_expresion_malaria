@@ -88,7 +88,7 @@ Los archivos se guardarán en data/raw/. Los identificadores, versiones y criter
 de selección se documentan en docs/reporte-proyecto.md.
 -->
 
-Los datos proceden de *NCBI Sequence Read Archive (SRA)*, asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z). Con el identificador: *SRP052073*
+Los datos proceden de *NCBI Bioproject*, asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z). Con el identificador: *PRJNA170440*
 
 Estos datos serán situados en las carpetas correspondientes:
 

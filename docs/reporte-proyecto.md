@@ -105,7 +105,7 @@ utilizarán datos clínicos ni se realizará validación experimental. -->
 
 ### Incluye
 
-- Incluye un análisis de 9 datasets de datos transcriptómicos de *Anopheles gambiae*, con organismos susceptibles y resistentes obtenidos de campo, así como organimos resistentes obtenidos de laboratorio.
+- Incluye un análisis de 2 datasets de datos transcriptómicos de *Anopheles gambiae*, con organismos susceptibles y resistentes obtenidos de campo.
 - Incluye un estudio de datos de expresión de los datos transcriptómicos
 - Incluye un enfoque con genes con el fin de una caracterización
 - Los resultados esperados son una lista de genes que promuevan la resistencia a insecticidas.
@@ -160,7 +160,7 @@ EJEMPLO: NCBI RefSeq, GCF_000005845.2, consultado el dd/mm/aaaa. -->
 
 | Fuente | Identificador o versión | URL | Fecha de consulta | Licencia o condiciones |
 |:--|:--|:--|:--|:--|
-| NCBI Sequence Read Archive (SRA), asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z) | SRP052073 | URL: https://www.ncbi.nlm.nih.gov/sra/?term=SRP052073 | - Consultado el 01/09/2026 | Mosquitos de campo resistentes a deltametrina (Provincia Occidental de Kenia) - Mosquitos de campo susceptibles a deltametrina (misma región) - Cepa de laboratorio Kisumu (susceptible de referencia, altamente endogámica) |
+| NCBI Sequence Read Archive (SRA), asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z) | SRP052073 | URL: https://pubmed.ncbi.nlm.nih.gov/22970263/| - Consultado el 01/09/2026 | Mosquitos de campo resistentes a deltametrina (Provincia Occidental de Kenia) - Mosquitos de campo susceptibles a deltametrina (misma región) - Cepa de laboratorio Kisumu (susceptible de referencia, altamente endogámica) |
 
 ### 8.2 Características de los datos
 
@@ -174,9 +174,7 @@ Anopheles gambiae (forma S)
 
 *Diseño experimental / grupos*
 
-3 condiciones: resistente a deltametrina (campo), susceptible a deltametrina (campo), cepa Kisumu (susceptible de laboratorio, referencia)
-9 librerías de RNA-seq en total
-Cada librería = pool de ARN de 12 mosquitos individuales (no son mosquitos individuales secuenciados por separado)
+Presentamos los análisis basados ​​en RNA-seq de los cambios transcripcionales en mosquitos *Anopheles gambiae* de África Oriental, clasificados como resistentes o susceptibles a la deltametrina según la prueba de la OMS. 
 
 *Origen geográfico*
 
@@ -242,7 +240,8 @@ EJEMPLO: En GFF3, seqid identifica la secuencia; type indica gene, CDS, etc. -->
 
 | Archivo o conjunto | Campo/columna | Tipo | Descripción | Valores o unidades |
 |:--|:--|:--|:--|:--|
-| SRR1763908.fasta | - | FASTA | Lecturas transcriptómicas | Lecturas de transcriptoma |
+| SRR520428.fasta | - | FASTA | Lecturas transcriptómicas | Lecturas de transcriptoma |
+| SRR520427.fasta | - | FASTA | Lecturas transcriptómicas | Lecturas de transcriptoma |
 
 ## 9. Metodología
 

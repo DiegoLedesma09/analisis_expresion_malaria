@@ -1,7 +1,8 @@
-import multiqc
-from multiqc.core.update_config import ClConfig
 from pathlib import Path
+
+import multiqc
 import pandas as pd
+from multiqc.core.update_config import ClConfig
 
 # Voy a definir una lista de todos los campos que evalúa FASTQC
 FASTQC_FLAG_COLUMNS = [

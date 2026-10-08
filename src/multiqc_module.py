@@ -18,17 +18,17 @@ FASTQC_FLAG_COLUMNS = [
 ]
 
 def run_multiqc():
-    # ===============================================================================================================================
-    # run_multiqc se encargará de recorrer una lista de los directorios que contengan los archivos .fasta de datos de 
-    # expresión del organismo Anopheles gambiae. Así como identificará la calidad de las lecturas y escribirá un dataframe
-    # que se guardará en la carpeta .results, en dicho Dataframe se identificará cada lectura y se dará un resumen de la calidad. 
-    #
-    # Args:
-    #
-    # Returns:
-    #      output_dirs (List) -> Lista de rutas de salida generadas por MultiQC, una por grupo
-    #
-    # ===============================================================================================================================
+    """
+    run_multiqc se encargará de recorrer una lista de los directorios que contengan los archivos .fasta de datos de 
+    expresión del organismo Anopheles gambiae. Así como identificará la calidad de las lecturas y escribirá un dataframe
+    que se guardará en la carpeta .results, en dicho Dataframe se identificará cada lectura y se dará un resumen de la calidad. 
+    
+    Args:
+    
+    Returns:
+         output_dirs (List) -> Lista de rutas de salida generadas por MultiQC, una por grupo
+    
+    """
     dirs_fasta = []
     dirs_fasta.append(Path("../data/raw/resistent"))
     dirs_fasta.append(Path("../data/raw/susceptible"))
@@ -43,17 +43,16 @@ def run_multiqc():
     return output_dirs
 
 def read_tsv(output_dirs):
-    # ===============================================================================================================================
-    # read_tsv se encarga de leer el tsv de FastQC, su única responsabilidad es parsear el archivo y devolver un DataFrame por
-    # muestra, tal y como vienen de MultiQC
-    #
-    # Args: 
-    #      output_dirs (List) -> Lista de rutas de salida generadas por run_multiqc, una por grupo
-    #
-    # Returns:
-    #      df_qc (DataFrame) -> DataFrame por muestra de MultiQC, parseado y por el orden del MultiQC
-    #
-    # ===============================================================================================================================
+    """ 
+    read_tsv se encarga de leer el tsv de FastQC, su única responsabilidad es parsear el archivo y devolver un DataFrame por
+    muestra, tal y como vienen de MultiQC
+    
+    Args: 
+         output_dirs (List) -> Lista de rutas de salida generadas por run_multiqc, una por grupo
+    
+    Returns:
+         df_qc (DataFrame) -> DataFrame por muestra de MultiQC, parseado y por el orden del MultiQC
+    """
 
     dfs = []
 
@@ -68,18 +67,18 @@ def read_tsv(output_dirs):
     return df_qc
 
 def classify_sample(df_qc):
-    # ===============================================================================================================================
-    # classify_sample se encarga de construir una estructura de diccionarios, en por cada muestra se asocia la calidad, dependendiendo
-    # principalmente de la presencia de adaptadores en la muestra. De ésta manera se clasifican las muestras sobre las que realmente se
-    # van a usar en el análisis
-    # 
-    # Args: 
-    #     df_qc (DataFrame) -> Estructura de datos creada por la función read_tsv(). DataFrame de la información de las lecturas por el 
-    #                     MultiQC
-    #
-    # Returns:
-    #     dict_qc (Diccionario) -> Diccionario en el que se le asocia la calidad de la muestra con el identificador de la lectura
-    # ===============================================================================================================================
+    """
+    classify_sample se encarga de construir una estructura de diccionarios, en por cada muestra se asocia la calidad, dependendiendo
+    principalmente de la presencia de adaptadores en la muestra. De ésta manera se clasifican las muestras sobre las que realmente se
+    van a usar en el análisis
+    
+    Args: 
+        df_qc (DataFrame) -> Estructura de datos creada por la función read_tsv(). DataFrame de la información de las lecturas por el 
+                        MultiQC
+    
+    Returns:
+        dict_qc (Diccionario) -> Diccionario en el que se le asocia la calidad de la muestra con el identificador de la lectura
+    """
     dict_qc = {}
 
     for i, row in df_qc.iterrows():
@@ -94,16 +93,16 @@ def classify_sample(df_qc):
     return dict_qc
 
 def delete_fails(dict_qc):
-    # ===============================================================================================================================
-    # delete_fails detecta los SRRs que son clasificados como fails, los elimina de los archivos que se usarán en el análisis.
-    # 
-    # Args: 
-    #     dict_qc (Diccionario) ->  Diccionario creado por la función classify_sample
-    #                     #
-    # Returns:
-    #     dict_qc_filtered (Diccionario) -> Diccionario que asocia la calidad de la muestra con el identificador de la lectura clasificada
-    #                                       por la calidad de la lectura eliminando los "fails"
-    # ===============================================================================================================================
+    """ 
+    delete_fails detecta los SRRs que son clasificados como fails, los elimina de los archivos que se usarán en el análisis.
+    
+    Args: 
+        dict_qc (Diccionario) ->  Diccionario creado por la función classify_sample
+                        #
+    Returns:
+        dict_qc_filtered (Diccionario) -> Diccionario que asocia la calidad de la muestra con el identificador de la lectura clasificada
+                                          por la calidad de la lectura eliminando los "fails"
+    """
     dict_qc_filtered = {
         sample: banderas
         for sample, banderas in dict_qc.items()

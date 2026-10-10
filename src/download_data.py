@@ -11,15 +11,12 @@ Funciones:
     otro).
     - Dos funciones. De la misma manera guardar los mismos metadatos de los BioSamples asociados al BioProject y de los SRA.
      Guardarlos en los archivos correspondientes biosample_metadata y sra_metadata.
-    - Una función que se encargue de buscar y descargar los archivos FASTA asociados a los SRA. Regresar las lecturas en 
-    una lista (Esto ponerlo como un parametro opcional de la funcion). Guardar las lecturas obtenidas en
+    - Una función que se encargue de buscar y descargar los archivos FASTA asociados a los SRA. Guardar las lecturas obtenidas en
     la carpeta de data/raw/resistent o data/raw/susceptible
     - Una función que guarde los metadatos del Genoma del organismo del BioProject, desde la plataforma de Genome.
     Guardar el resultado en un archivo denominado genome_metadata en docs/
     - Una función que se encargue de buscar y descargar el genoma del organismo del BioProject desde la plataforma
     de Genome. Guardar el resultado en un archivo denominado genome_{organismo}.fasta en la data/genome/
-    - Una función que se encargue de concatenar todas las lecturas obtenidas (dependiendo del grupo) de SRA en un sólo archivo. 
-    Guardar el archivo en data/curated/
     - Una función argparse con los argumentos de -p --project (Una string que de el BioProject), -e --email (String),
     -o --outdir (path), -c --concat (Un booleano que indique sí quiere concatenar), -r --reference (Un booleano que indique sí se quiere el genoma o no),
 """ 

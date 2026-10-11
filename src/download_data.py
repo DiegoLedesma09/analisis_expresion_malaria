@@ -24,6 +24,7 @@ Funciones:
 import logging
 
 from Bio import Entrez
+import os
 
 
 def configurate_entrez(email:str, api_key:str):
@@ -42,3 +43,168 @@ def configurate_entrez(email:str, api_key:str):
     Entrez.api_key = api_key if api_key else None
     logging.info(f"Se ha configurado Entrez con el email {email}, API key: {'Entregada' if api_key else 'None'}")  # noqa: LOG015
     print(f"Se ha configurado Entrez con el email: {email}")
+
+def get_bioproject_uid(bioproject_id: str) -> str:
+    """
+    Función auxiliar para obtener el UID interno numérico de un BioProject.
+    """
+    handle = Entrez.esearch(db="bioproject", term=bioproject_id)
+    record = Entrez.read(handle)
+    handle.close()
+    
+    id_list = record.get("IdList", [])
+    if not id_list:
+        raise ValueError(f"No se encontró el BioProject: {bioproject_id}")
+        
+    return id_list[0]
+
+
+def get_bioproject_metadata(bioproject_id: str, outdir = "docs"):
+    """
+    Obtiene la información y los metadatos más importantes de un BioProject
+        y los guarda en docs/bioproject_metadata
+    Args:
+        bioproject_id (str): El identificador del BioProject (ej. 'PRJNAxxxxxx')
+        outdir (str): Carpeta de destino (por defecto 'docs/')
+    """
+
+    # Asegurar que la carpeta del destino exista
+    os.makedirs(outdir, exist_ok=True)
+
+
+    project_uid = get_bioproject_uid(bioproject_id)
+
+    resumen_handle = Entrez.esummary(db="bioproject", id=project_uid)
+    resumen_record = Entrez.read(resumen_handle)
+    resumen_handle.close()
+
+    # Guardar el resultado en un archivo denominado bioproject_metadata en docs/
+    output_path = os.path.join(outdir, "bioproject_metadata")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"======Metadatos del BioProject: {bioproject_id}======\n")
+
+        doc = resumen_record["DocumentSummary"][0]
+        for key, value in doc.items():
+            f.write(f"{key} \t {value}\n")
+
+    print(f"Metadatos guardados correctamente en: {output_path}")
+
+    return resumen_record
+
+def get_biosamples_and_sra(bioproject_id: str):
+    """
+    Obtiene todos los Biosamples y SRA asociados al BioProject.
+    Imprime los IDs uno debajo del otro y regresa dos listas.
+    """
+
+    # Se llama la funcion para obtener el UID interno del BioProject
+    
+    bioproject_uid = get_bioproject_uid(bioproject_id)
+    
+    # Buscar los BioSamples asociados
+    
+    bs_link_handle = Entrez.elink(dbfrom="bioproject", db="biosample", id=bioproject_uid)
+    bs_link_record = Entrez.read(bs_link_handle)
+    bs_link_handle.close()
+
+    biosample_ids = []
+    if bs_link_record[0].get("LinkSetDb"):
+        for enlace in bs_link_record[0]["LinkSetDb"][0]["Link"]:
+            biosample_ids.append(enlace["Id"])
+
+
+    # Buscar los SRA vinculados usando elink
+    sra_link_handle = Entrez.elink(dbfrom="bioproject", db="sra", id=bioproject_uid)
+    sra_link_record = Entrez.read(sra_link_handle)
+    sra_link_handle.close()
+
+    sra_ids = []
+    if sra_link_record[0].get("LinkSetDb"):
+        for enlace in sra_link_record[0]["LinkSetDb"][0]["Link"]:
+            sra_ids.append(enlace["Id"])
+
+    # Imprimir uno debajo del otro
+    print(f"\n======BioSamples asociados a {bioproject_id}======")
+    for bs in biosample_ids:
+        print(bs)
+
+    print(f"\n======SRA asociados a {bioproject_id}======")
+    for sra in sra_ids:
+        print(sra)
+
+    return biosample_ids, sra_ids
+
+def save_biosample_metadata(biosample_ids: list, bioproject_id: str, outdir: str = "docs"):
+    """
+    Obtiene los metadatos de una lista de BioSamples y los guarda en 
+    docs/biosample_metadata extrayendo únicamente los campos de interés.
+    """
+    if not biosample_ids:
+        print("No hay BioSamples para guardar")
+        return
+
+    os.makedirs(outdir, exist_ok=True)
+
+    # Unir la lista de Ids con comas para descargarlos todos juntos
+    ids_str = ",".join(biosample_ids)
+
+    metadata_bs_handle = Entrez.esummary(db="biosample", id=ids_str)
+    metadata_bs_record = Entrez.read(metadata_bs_handle)
+    metadata_bs_handle.close()
+
+    output_path= os.path.join(outdir, "biosample_metadata")
+    with open(output_path, "w", encoding="utf-8") as f:
+
+        f.write(f"====== Metadatos de BioSamples asociados a {bioproject_id} ======\n")
+
+        documentos = metadata_bs_record.get("DocumentSummarySet",{}).get("DocumentSummary",[])
+
+        for doc in documentos:
+            f.write(f"\n--- BioSample ID: {doc.get('Id', 'Desconocido')} ---\n")
+            f.write(f"Accession \t {doc.get('Accession', 'N/A')}\n")
+            f.write(f"Id \t {doc.get('Id', 'N/A')}\n")
+            f.write(f"Title \t {doc.get('Title', 'N/A')}\n")
+            f.write(f"Organism \t {doc.get('Organism', 'N/A')}\n")
+            f.write(f"ProjectAccession \t {doc.get('ProjectAccession', 'N/A')}\n")
+
+    print(f"Metadatos de BioSamples guardados correctamente en: {output_path}")
+
+def save_sra_metadata(sra_ids: list, bioproject_id: str, outdir: str = "docs"):
+    """
+    Obtiene los metadatos de una lista de SRA y los guarda en 
+    docs/sra_metadata extrayendo únicamente los campos de interés.
+    """
+    if not sra_ids:
+        print("No hay SRA para guardar.")
+        return
+    
+    os.makedirs(outdir, exist_ok=True)
+
+    ids_str_sra = ",".join(sra_ids)
+
+    handle_sra = Entrez.esummary(db="sra", id=ids_str_sra)
+    record_sra = Entrez.read(handle_sra)
+    handle_sra.close()
+
+    output_path = os.path.join(outdir, "sra_metadata")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"======Metadatos de SRA asociados al BioProject: {bioproject_id}======\n")
+
+        documentos_sra = record_sra.get("DocumentSummary",[])
+
+        for doc in documentos_sra:  
+            f.write(f"\n--- SRA ID: {doc.get('Id', 'Desconocido')} ---\n")  
+            # Campos directos
+            f.write(f"Experiment Accession (SRX) \t {doc.get('ExtId', 'N/A')}\n")
+            f.write(f"Id \t {doc.get('Id', 'N/A')}\n")
+            f.write(f"Title \t {doc.get('Title', 'N/A')}\n")
+
+            ## Extraccion del numero SRR(Run)
+            runs_xml = doc.get('Runs', '')
+            srr_accession = "N/A"
+            if 'acc="' in runs_xml:
+                partes = runs_xml.split('acc="')
+                srr_accession = partes[1].split('"')[0]
+            f.write(f"Run Accession (SRR) \t {srr_accession}\n")
+
+    print(f"Metadatos de SRA guardados correctamente en: {output_path}")

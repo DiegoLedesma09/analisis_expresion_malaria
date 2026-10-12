@@ -3,13 +3,13 @@ En este módulo, nos encargaremos de la descarga de los datos. De igual manera, 
 con el fin de hacerlo más reproducible. Las instrucciones de cada uno de los módulos son los siguientes.
 
 Funciones:
-    - Una función que permita introducir el email y la api.key
-    - Una función que obtenga toda la información del BioProject del proyecto (Metadatos) más importante.
+Y    - Una función que permita introducir el email y la api.key
+Y    - Una función que obtenga toda la información del BioProject del proyecto (Metadatos) más importante.
     Guardar el resultado en un archivo denominado bioproject_metadata y guardarlo en docs/. 
-    - Una función que obtenga todos los biosamples y SRA asociados al correspondiente Bioproject. Regresar dos listas.
+Y    - Una función que obtenga todos los biosamples y SRA asociados al correspondiente Bioproject. Regresar dos listas.
     Una con los IDs de Biosamples asociados y otra con los SRA asociados al BioProject (Imprimir uno debajo de
     otro).
-    - Dos funciones. De la misma manera guardar los mismos metadatos de los BioSamples asociados al BioProject y de los SRA.
+Y    - Dos funciones. De la misma manera guardar los mismos metadatos de los BioSamples asociados al BioProject y de los SRA.
      Guardarlos en los archivos correspondientes biosample_metadata y sra_metadata.
     - Una función que se encargue de buscar y descargar los archivos FASTA asociados a los SRA. Guardar las lecturas obtenidas en
     la carpeta de data/raw/resistent o data/raw/susceptible
@@ -22,9 +22,9 @@ Funciones:
 """ 
 
 import logging
+import os
 
 from Bio import Entrez
-import os
 
 
 def configurate_entrez(email:str, api_key:str):
@@ -47,6 +47,12 @@ def configurate_entrez(email:str, api_key:str):
 def get_bioproject_uid(bioproject_id: str) -> str:
     """
     Función auxiliar para obtener el UID interno numérico de un BioProject.
+
+    Args:
+        bioproject_id (str) -> Identificador del Bioproject.
+
+    Returns:
+        id_list[0] (str) -> Identificador UID numérico del Bioproject.
     """
     handle = Entrez.esearch(db="bioproject", term=bioproject_id)
     record = Entrez.read(handle)
@@ -66,6 +72,9 @@ def get_bioproject_metadata(bioproject_id: str, outdir = "docs"):
     Args:
         bioproject_id (str): El identificador del BioProject (ej. 'PRJNAxxxxxx')
         outdir (str): Carpeta de destino (por defecto 'docs/')
+    
+    Returns:
+        None
     """
 
     # Asegurar que la carpeta del destino exista
@@ -84,17 +93,24 @@ def get_bioproject_metadata(bioproject_id: str, outdir = "docs"):
         f.write(f"======Metadatos del BioProject: {bioproject_id}======\n")
 
         doc = resumen_record["DocumentSummary"][0]
-        for key, value in doc.items():
-            f.write(f"{key} \t {value}\n")
+        f.writelines(f"{key} \t {value}\n" for key, value in doc.items())
 
     print(f"Metadatos guardados correctamente en: {output_path}")
 
     return resumen_record
 
-def get_biosamples_and_sra(bioproject_id: str):
+def get_biosamples_and_sra(bioproject_id: str) -> tuple[list[str], list[str]]:
     """
     Obtiene todos los Biosamples y SRA asociados al BioProject.
     Imprime los IDs uno debajo del otro y regresa dos listas.
+
+    Args:
+        bioproject_id (str) -> Identicador del BioProject
+
+    Returns:
+        biosample_ids, sra_ids (tuple[list[str], list[str]]) -> Tupla de listas:
+            biosample_ids: Lista con los ids de los biosamples asociados al bioproject.
+            sra_ids: Lista con los ids de los sras asociados al bioproject. 
     """
 
     # Se llama la funcion para obtener el UID interno del BioProject
@@ -138,6 +154,14 @@ def save_biosample_metadata(biosample_ids: list, bioproject_id: str, outdir: str
     """
     Obtiene los metadatos de una lista de BioSamples y los guarda en 
     docs/biosample_metadata extrayendo únicamente los campos de interés.
+
+    Args:
+        biosample_ids (list[str]) -> Lista con los ids de los biosamples asociados al bioproject
+        bioproject_id (str) -> Identificador del Bioproject
+        outdir (str) -> Directorio de salida (por defecto '/docs')
+
+    Returns:
+        None
     """
     if not biosample_ids:
         print("No hay BioSamples para guardar")
@@ -173,6 +197,11 @@ def save_sra_metadata(sra_ids: list, bioproject_id: str, outdir: str = "docs"):
     """
     Obtiene los metadatos de una lista de SRA y los guarda en 
     docs/sra_metadata extrayendo únicamente los campos de interés.
+
+    Args:
+        sra_ids (list[str]) -> Lista con los ids de los sra asociados al bioproject
+        bioproject_id (str) -> Identificador del Bioproject
+        outdir (str) -> Directorio de salida (por defecto '/docs')
     """
     if not sra_ids:
         print("No hay SRA para guardar.")

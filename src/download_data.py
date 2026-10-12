@@ -150,7 +150,7 @@ def get_biosamples_and_sra(bioproject_id: str) -> tuple[list[str], list[str]]:
 
     return biosample_ids, sra_ids
 
-def save_biosample_metadata(biosample_ids: list, bioproject_id: str, outdir: str = "docs"):
+def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir: str = "docs"):
     """
     Obtiene los metadatos de una lista de BioSamples y los guarda en 
     docs/biosample_metadata extrayendo únicamente los campos de interés.
@@ -193,7 +193,7 @@ def save_biosample_metadata(biosample_ids: list, bioproject_id: str, outdir: str
 
     print(f"Metadatos de BioSamples guardados correctamente en: {output_path}")
 
-def save_sra_metadata(sra_ids: list, bioproject_id: str, outdir: str = "docs"):
+def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "docs"):
     """
     Obtiene los metadatos de una lista de SRA y los guarda en 
     docs/sra_metadata extrayendo únicamente los campos de interés.
@@ -202,6 +202,9 @@ def save_sra_metadata(sra_ids: list, bioproject_id: str, outdir: str = "docs"):
         sra_ids (list[str]) -> Lista con los ids de los sra asociados al bioproject
         bioproject_id (str) -> Identificador del Bioproject
         outdir (str) -> Directorio de salida (por defecto '/docs')
+
+    Returns:
+        None
     """
     if not sra_ids:
         print("No hay SRA para guardar.")
@@ -237,3 +240,25 @@ def save_sra_metadata(sra_ids: list, bioproject_id: str, outdir: str = "docs"):
             f.write(f"Run Accession (SRR) \t {srr_accession}\n")
 
     print(f"Metadatos de SRA guardados correctamente en: {output_path}")
+
+def download_sra_lectures(bioproject_id:str, outdir:str = "data/"):
+    """
+    Descarga las lecturas correspondientes a los SRA asociados al Bioproject,
+    las guarda dentro de nuevos directorios correspondientes dependiendo de 
+    la condición del muestreo.
+
+    Args:
+        bioproject_id (str) -> Identificador del Bioproject
+        outdir (str) -> Directorio de salida (por defecto '/data')
+    """
+    _ , sra_ids = get_biosamples_and_sra(bioproject_id)
+
+    os.makedirs(f"{outdir}/raw/susceptible/sra_runs", exist_ok=True)
+    os.makedirs(f"{outdir}/raw/resistent/sra_runs", exist_ok=True)
+
+    for sra_id in sra_ids:
+        handle_sra = Entrez.efetch(db="sra", id=sra_id)
+        record = Entrez.read(handle_sra)
+        print(record)
+        handle_sra.close()
+    

@@ -11,7 +11,7 @@ Y    - Una función que obtenga todos los biosamples y SRA asociados al correspo
     otro).
 Y    - Dos funciones. De la misma manera guardar los mismos metadatos de los BioSamples asociados al BioProject y de los SRA.
      Guardarlos en los archivos correspondientes biosample_metadata y sra_metadata.
-    - Una función que se encargue de buscar y descargar los archivos FASTA asociados a los SRA. Guardar las lecturas obtenidas en
+Y    - Una función que se encargue de buscar y descargar los archivos FASTA asociados a los SRA. Guardar las lecturas obtenidas en
     la carpeta de data/raw/resistent o data/raw/susceptible
     - Una función que guarde los metadatos del Genoma del organismo del BioProject, usando el database assembly.
     Guardar el resultado en un archivo denominado genome_metadata en docs/
@@ -21,19 +21,25 @@ Y    - Dos funciones. De la misma manera guardar los mismos metadatos de los Bio
     -o --outdir (path), -c --concat (Un booleano que indique sí quiere concatenar), -r --reference (Un booleano que indique sí se quiere el genoma o no),
 """ 
 
-import logging
+import argparse as ap
 import os
+import re
+import subprocess
+from urllib.error import HTTPError, URLError
 
 from Bio import Entrez
 
 
-def configurate_entrez(email:str, api_key:str):
+def configurate_entrez(email:str, api_key:str) -> None:
     """
     Ésta función se encarga de configurar Entrez.
 
     Args:
         email (str): Email del usuario
         api_key (str): Llave de NCBI para agilizar descargas
+
+    Returns:
+        None
     """
 
     if not email:
@@ -41,7 +47,6 @@ def configurate_entrez(email:str, api_key:str):
     
     Entrez.email = email
     Entrez.api_key = api_key if api_key else None
-    logging.info(f"Se ha configurado Entrez con el email {email}, API key: {'Entregada' if api_key else 'None'}")  # noqa: LOG015
     print(f"Se ha configurado Entrez con el email: {email}")
 
 def get_bioproject_uid(bioproject_id: str) -> str:
@@ -54,18 +59,22 @@ def get_bioproject_uid(bioproject_id: str) -> str:
     Returns:
         id_list[0] (str) -> Identificador UID numérico del Bioproject.
     """
-    handle = Entrez.esearch(db="bioproject", term=bioproject_id)
-    record = Entrez.read(handle)
-    handle.close()
-    
-    id_list = record.get("IdList", [])
-    if not id_list:
-        raise ValueError(f"No se encontró el BioProject: {bioproject_id}")
-        
-    return id_list[0]
 
+    try:
+        with Entrez.esearch(db="bioproject", term=bioproject_id) as handle:
+            record = Entrez.read(handle)
+            id_list = record.get("IdList", [])
+            if not id_list:
+                raise ValueError(f"No se encontró el BioProject: {bioproject_id}")
+            
+        return id_list[0]
 
-def get_bioproject_metadata(bioproject_id: str, outdir = "docs"):
+    except HTTPError as e:
+        raise ConnectionError(f"NCBI respondió con error {e.code} para {bioproject_id}") from e
+    except (URLError, RuntimeError) as e:
+        raise ConnectionError(f"No se pudo consultar NCBI para {bioproject_id}: {e}") from e
+
+def get_bioproject_metadata(bioproject_id: str, outdir = "docs") -> None:
     """
     Obtiene la información y los metadatos más importantes de un BioProject
         y los guarda en docs/bioproject_metadata
@@ -96,8 +105,6 @@ def get_bioproject_metadata(bioproject_id: str, outdir = "docs"):
         f.writelines(f"{key} \t {value}\n" for key, value in doc.items())
 
     print(f"Metadatos guardados correctamente en: {output_path}")
-
-    return resumen_record
 
 def get_biosamples_and_sra(bioproject_id: str) -> tuple[list[str], list[str]]:
     """
@@ -150,7 +157,7 @@ def get_biosamples_and_sra(bioproject_id: str) -> tuple[list[str], list[str]]:
 
     return biosample_ids, sra_ids
 
-def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir: str = "docs"):
+def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir: str = "docs") -> None:
     """
     Obtiene los metadatos de una lista de BioSamples y los guarda en 
     docs/biosample_metadata extrayendo únicamente los campos de interés.
@@ -193,7 +200,7 @@ def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir
 
     print(f"Metadatos de BioSamples guardados correctamente en: {output_path}")
 
-def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "docs"):
+def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "docs") -> None:
     """
     Obtiene los metadatos de una lista de SRA y los guarda en 
     docs/sra_metadata extrayendo únicamente los campos de interés.
@@ -241,7 +248,7 @@ def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "doc
 
     print(f"Metadatos de SRA guardados correctamente en: {output_path}")
 
-def download_sra_lectures(bioproject_id:str, outdir:str = "data/"):
+def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) -> None:
     """
     Descarga las lecturas correspondientes a los SRA asociados al Bioproject,
     las guarda dentro de nuevos directorios correspondientes dependiendo de 
@@ -250,84 +257,25 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/"):
     Args:
         bioproject_id (str) -> Identificador del Bioproject
         outdir (str) -> Directorio de salida (por defecto '/data')
+        w (int) -> Número de workers para la descarga de datos (por defecto: 8)
+    
+    Returns:
+        None
     """
     _ , sra_ids = get_biosamples_and_sra(bioproject_id)
 
-    os.makedirs(f"{outdir}/raw/susceptible/sra_runs", exist_ok=True)
-    os.makedirs(f"{outdir}/raw/resistent/sra_runs", exist_ok=True)
+    # Creo los directorios de salida
+    susceptible_dir = os.path.join(outdir, "raw", "susceptible", "sra_runs")
+    resistent_dir = os.path.join(outdir, "raw", "resistent", "sra_runs")
 
+    # Creo los directorios de salida en caso de que no existan
+    os.makedirs(susceptible_dir, exist_ok=True)
+    os.makedirs(resistent_dir, exist_ok=True)
+
+    # Busco en Sra el sra_id buscando sí es la cepa Susceptible o Resistente al insecticida
     for sra_id in sra_ids:
-        handle_sra = Entrez.efetch(db="sra", id=sra_id)
+        handle_sra = Entrez.esummary(db="sra", id=sra_id)
         record = Entrez.read(handle_sra)
-        print(record)
+        exp_xml = record[0]["ExpXml"]
         handle_sra.close()
-
-    def get_genome_metadata(bioproject_id: str, outdir: str = "docs/"):
-        """
-        Decarga los metadatos del genoma de referencia asociado al organismo del Bioproject desde la base de datos 'assembly' de 
-        NCBI y los guarda en el archivo docs/genome_metadata.
-        Args:
-            bioproject_id (str) -> Identificador del BioProject. 
-            outdir (str) -> Directorio de salida (por defecto '/data').
-        """
-        # Asegurar que la carpeta del destino exista
-        os.makedirs(outdir, exist_ok=True)
-
-        project_uid = get_bioproject_uid(bioproject_id)
-        handle_bp = Entrez.esummary(db="bioproject", id=project_uid)
-        record_bp = Entrez.read(handle_bp)
-        handle_bp.close()
-
-        doc_bp = record_bp["DocumentSummarySet"]["DocumentSummary"][0]
-        organism = doc_bp.get("Organism_Name")
-        if not organism:
-        print(f"No se pudo determinar el organismo para {bioproject_id}")
-        return
-
-        print(f"Buscando genoma de referencia para: {organism}")
-
-        handle_search = Entrez.esearch(db="assembly", term=f'{organism}[Organism] AND "reference genome"[filter]')
-        record_search = Entrez.read(handle_search)
-        handle_search.close()
-
-        assembly_uids = record_search["IdList"]
-        if not assembly_uids:
-            print(f"No se encontró ensamblaje de referencia para {organism}")
-            return
-        
-        assembly_uid = assembly_uids[0]
-
-        handle_genome = Entrez.esummary(db="assembly", id=assembly_uid, report="full")
-        record_genome = Entrez.read(handle_genome)
-        handle_genome.close()
-
-        output_path = os.path.join(outdir, "genome_metadata")
-        
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(f"====== Metadatos del Genoma asociado al BioProject: {bioproject_id} ======\n\n")
-
-            doc = record_genome["DocumentSummarySet"]["DocumentSummary"][0]
-        campos_interes = [
-            "AssemblyAccession",
-            "AssemblyName",
-            "AssemblyStatus",
-            "Organism",
-            "RefSeq_category",
-            "FtpPath_RefSeq",
-            "FtpPath_GenBank",
-        ]
-        for campo in campos_interes:
-            f.write(f"{campo} \t {doc.get(campo, 'N/A')}\n")
-
-    print(f"Metadatos del genoma guardados en: {output_path}")
-
-
-
-
-
-
-
-        
-        
-
-
+    

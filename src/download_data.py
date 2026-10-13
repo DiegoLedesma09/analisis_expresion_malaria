@@ -13,7 +13,7 @@ Y    - Dos funciones. De la misma manera guardar los mismos metadatos de los Bio
      Guardarlos en los archivos correspondientes biosample_metadata y sra_metadata.
     - Una función que se encargue de buscar y descargar los archivos FASTA asociados a los SRA. Guardar las lecturas obtenidas en
     la carpeta de data/raw/resistent o data/raw/susceptible
-    - Una función que guarde los metadatos del Genoma del organismo del BioProject, desde la plataforma de Genome.
+    - Una función que guarde los metadatos del Genoma del organismo del BioProject, usando el database assembly.
     Guardar el resultado en un archivo denominado genome_metadata en docs/
     - Una función que se encargue de buscar y descargar el genoma del organismo del BioProject desde la plataforma
     de Genome. Guardar el resultado en un archivo denominado genome_{organismo}.fasta en la data/genome/
@@ -261,4 +261,73 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/"):
         record = Entrez.read(handle_sra)
         print(record)
         handle_sra.close()
-    
+
+    def get_genome_metadata(bioproject_id: str, outdir: str = "docs/"):
+        """
+        Decarga los metadatos del genoma de referencia asociado al organismo del Bioproject desde la base de datos 'assembly' de 
+        NCBI y los guarda en el archivo docs/genome_metadata.
+        Args:
+            bioproject_id (str) -> Identificador del BioProject. 
+            outdir (str) -> Directorio de salida (por defecto '/data').
+        """
+        # Asegurar que la carpeta del destino exista
+        os.makedirs(outdir, exist_ok=True)
+
+        project_uid = get_bioproject_uid(bioproject_id)
+        handle_bp = Entrez.esummary(db="bioproject", id=project_uid)
+        record_bp = Entrez.read(handle_bp)
+        handle_bp.close()
+
+        doc_bp = record_bp["DocumentSummarySet"]["DocumentSummary"][0]
+        organism = doc_bp.get("Organism_Name")
+        if not organism:
+        print(f"No se pudo determinar el organismo para {bioproject_id}")
+        return
+
+        print(f"Buscando genoma de referencia para: {organism}")
+
+        handle_search = Entrez.esearch(db="assembly", term=f'{organism}[Organism] AND "reference genome"[filter]')
+        record_search = Entrez.read(handle_search)
+        handle_search.close()
+
+        assembly_uids = record_search["IdList"]
+        if not assembly_uids:
+            print(f"No se encontró ensamblaje de referencia para {organism}")
+            return
+        
+        assembly_uid = assembly_uids[0]
+
+        handle_genome = Entrez.esummary(db="assembly", id=assembly_uid, report="full")
+        record_genome = Entrez.read(handle_genome)
+        handle_genome.close()
+
+        output_path = os.path.join(outdir, "genome_metadata")
+        
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(f"====== Metadatos del Genoma asociado al BioProject: {bioproject_id} ======\n\n")
+
+            doc = record_genome["DocumentSummarySet"]["DocumentSummary"][0]
+        campos_interes = [
+            "AssemblyAccession",
+            "AssemblyName",
+            "AssemblyStatus",
+            "Organism",
+            "RefSeq_category",
+            "FtpPath_RefSeq",
+            "FtpPath_GenBank",
+        ]
+        for campo in campos_interes:
+            f.write(f"{campo} \t {doc.get(campo, 'N/A')}\n")
+
+    print(f"Metadatos del genoma guardados en: {output_path}")
+
+
+
+
+
+
+
+        
+        
+
+

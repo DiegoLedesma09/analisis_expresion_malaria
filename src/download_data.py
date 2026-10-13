@@ -21,8 +21,9 @@ Y    - Dos funciones. De la misma manera guardar los mismos metadatos de los Bio
     -o --outdir (path), -c --concat (Un booleano que indique sí quiere concatenar), -r --reference (Un booleano que indique sí se quiere el genoma o no),
 """ 
 
-import logging
 import os
+import re
+import subprocess
 
 from Bio import Entrez
 
@@ -41,7 +42,6 @@ def configurate_entrez(email:str, api_key:str):
     
     Entrez.email = email
     Entrez.api_key = api_key if api_key else None
-    logging.info(f"Se ha configurado Entrez con el email {email}, API key: {'Entregada' if api_key else 'None'}")  # noqa: LOG015
     print(f"Se ha configurado Entrez con el email: {email}")
 
 def get_bioproject_uid(bioproject_id: str) -> str:
@@ -241,7 +241,7 @@ def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "doc
 
     print(f"Metadatos de SRA guardados correctamente en: {output_path}")
 
-def download_sra_lectures(bioproject_id:str, outdir:str = "data/"):
+def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = "8"):
     """
     Descarga las lecturas correspondientes a los SRA asociados al Bioproject,
     las guarda dentro de nuevos directorios correspondientes dependiendo de 
@@ -250,15 +250,60 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/"):
     Args:
         bioproject_id (str) -> Identificador del Bioproject
         outdir (str) -> Directorio de salida (por defecto '/data')
+        w (int) -> Número de workers para la descarga de datos (por defecto: 8)
     """
     _ , sra_ids = get_biosamples_and_sra(bioproject_id)
 
-    os.makedirs(f"{outdir}/raw/susceptible/sra_runs", exist_ok=True)
-    os.makedirs(f"{outdir}/raw/resistent/sra_runs", exist_ok=True)
 
+    # Creo los directorios de salida
+    susceptible_dir = os.path.join(outdir, "raw", "susceptible", "sra_runs")
+    resistent_dir = os.path.join(outdir, "raw", "resistent", "sra_runs")
+
+    # Creo los directorios de salida en caso de que no existan
+    os.makedirs(susceptible_dir, exist_ok=True)
+    os.makedirs(resistent_dir, exist_ok=True)
+
+    # Busco en Sra el sra_id buscando sí es la cepa Susceptible o Resistente al insecticida
     for sra_id in sra_ids:
-        handle_sra = Entrez.efetch(db="sra", id=sra_id)
+        handle_sra = Entrez.esummary(db="sra", id=sra_id)
         record = Entrez.read(handle_sra)
-        print(record)
+        exp_xml = record[0]["ExpXml"]
         handle_sra.close()
+
+        # Mediante una función regex, busco el campo que me diga el fenotipo
+        match = re.search(r':\s*([a-zA-Z]+);', exp_xml)
+
+        # Si encuentra un fenotipo asociado, lo guarda
+        if match:
+            fenotipo = match.group(1)
+        else:
+            raise ValueError(f"No se encontró fenotipo asociado al {sra_id}")
+        
+        # Le asocio el nombre del fenotipo al directorio de salida
+        file_domain = fenotipo.lower()
+        if "susceptible" in file_domain:
+            domain_dir = susceptible_dir
+        elif "resistent" in file_domain:
+            domain_dir = resistent_dir
+        else:
+            domain_dir = os.path.join("raw", file_domain, "sra_runs")
+            os.makedirs(domain_dir, exist_ok=True)
+        
+        print(f"Descargando la corrida {sra_id} ({fenotipo}, hacia {domain_dir})")
+        
+        # Mediante subprocess, uso la libreria de fasterq-dump para descargar las lecturas
+        # desde SRA, separando las dos lecturas pareadas y uso 8 workers
+        cmd = ["fasterq-dump", 
+            sra_id, 
+            "-O", domain_dir, 
+            "--split-files", 
+            "-e", w
+            ]
+        
+        try:
+            subprocess.run(cmd, check=True)
+            print(f"Descarga exitosa {sra_id}")
+        except subprocess.CalledProcessError as e:
+            raise ValueError(f"Error al descargar {sra_id} con fasterq-dump {e}")
+
     

@@ -13,7 +13,7 @@ Y    - Dos funciones. De la misma manera guardar los mismos metadatos de los Bio
      Guardarlos en los archivos correspondientes biosample_metadata y sra_metadata.
 Y    - Una función que se encargue de buscar y descargar los archivos FASTA asociados a los SRA. Guardar las lecturas obtenidas en
     la carpeta de data/raw/resistent o data/raw/susceptible
-    - Una función que guarde los metadatos del Genoma del organismo del BioProject, usando el database assembly.
+    - Una función que guarde los metadatos del Genoma del organismo del BioProject, desde la plataforma de Genome.
     Guardar el resultado en un archivo denominado genome_metadata en docs/
     - Una función que se encargue de buscar y descargar el genoma del organismo del BioProject desde la plataforma
     de Genome. Guardar el resultado en un archivo denominado genome_{organismo}.fasta en la data/genome/
@@ -278,4 +278,131 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
         record = Entrez.read(handle_sra)
         exp_xml = record[0]["ExpXml"]
         handle_sra.close()
-    
+
+        # Mediante una función regex, busco el campo que me diga el fenotipo
+        match = re.search(r':\s*([a-zA-Z]+);', exp_xml)
+
+        # Si encuentra un fenotipo asociado, lo guarda
+        if match:
+            fenotipo = match.group(1)
+        else:
+            raise ValueError(f"No se encontró fenotipo asociado al {sra_id}")
+        
+        # Le asocio el nombre del fenotipo al directorio de salida
+        file_domain = fenotipo.lower()
+        if "susceptible" in file_domain:
+            domain_dir = susceptible_dir
+        elif "resistent" in file_domain:
+            domain_dir = resistent_dir
+        else:
+            domain_dir = os.path.join(outdir, "raw", file_domain, "sra_runs")
+            os.makedirs(domain_dir, exist_ok=True)
+        
+        print(f"Descargando la corrida {sra_id} ({fenotipo}, hacia {domain_dir})")
+        
+        # Mediante subprocess, uso la libreria de fasterq-dump para descargar las lecturas
+        # desde SRA, separando las dos lecturas pareadas y uso 8 workers
+        cmd = ["fasterq-dump", 
+            sra_id, 
+            "-O", domain_dir, 
+            "--split-files", 
+            "-e", str(w)
+            ]
+        
+        try:
+            subprocess.run(cmd, check=True)
+            print(f"Descarga exitosa {sra_id}")
+        except subprocess.CalledProcessError as e:
+            raise ValueError(f"Error al descargar {sra_id} con fasterq-dump {e}")
+
+def get_genome_metadata(bioproject_id: str, outdir: str = "docs/"):
+        """
+        Decarga los metadatos del genoma de referencia asociado al 
+        organismo del Bioproject desde la base de datos 'assembly' de 
+        NCBI y los guarda en el archivo docs/genome_metadata.
+
+        Args:
+            bioproject_id (str) -> Identificador del BioProject. 
+            outdir (str) -> Directorio de salida (por defecto '/docs').
+        """
+        # Asegurar que la carpeta del destino exista
+        os.makedirs(outdir, exist_ok=True)
+
+        project_uid = get_bioproject_uid(bioproject_id)
+        handle_bp = Entrez.esummary(db="bioproject", id=project_uid)
+        record_bp = Entrez.read(handle_bp)
+        handle_bp.close()
+
+        doc_bp = record_bp["DocumentSummarySet"]["DocumentSummary"][0]
+        organism = doc_bp.get("Organism_Name")
+        if not organism:
+            print(f"No se pudo determinar el organismo para {bioproject_id}")
+        return
+
+        print(f"Buscando genoma de referencia para: {organism}")
+
+        handle_search = Entrez.esearch(db="assembly", term=f'{organism}[Organism] AND "reference genome"[filter]')
+        record_search = Entrez.read(handle_search)
+        handle_search.close()
+
+        assembly_uids = record_search["IdList"]
+        if not assembly_uids:
+            print(f"No se encontró ensamblaje de referencia para {organism}")
+            return
+        
+        assembly_uid = assembly_uids[0]
+
+        handle_genome = Entrez.esummary(db="assembly", id=assembly_uid, report="full")
+        record_genome = Entrez.read(handle_genome)
+        handle_genome.close()
+
+        output_path = os.path.join(outdir, "genome_metadata")
+        
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(f"====== Metadatos del Genoma asociado al BioProject: {bioproject_id} ======\n\n")
+
+            doc = record_genome["DocumentSummarySet"]["DocumentSummary"][0]
+            
+        campos_interes = [
+            "AssemblyAccession",
+            "AssemblyName",
+            "AssemblyStatus",
+            "Organism",
+            "RefSeq_category",
+            "FtpPath_RefSeq",
+            "FtpPath_GenBank",
+        ]
+        f.writelines(f"{campo} \t {doc.get(campo, 'N/A')}\n" for campo in campos_interes)
+
+        print(f"Metadatos del genoma guardados en: {output_path}")
+
+def download_reference_genome(bioproject_id:str, outdir:str = "data/", w:int = 8) -> None:
+    """
+    Descarga el genoma de referencia correspondiente al organismo del Bioproject,
+    lo guarda en un directorio correspondiente.
+
+    Args:
+        bioproject_id (str) -> Identificador del Bioproject
+        outdir (str) -> Directorio de salida (por defecto '/data')
+        w (int) -> Número de workers (por defecto 8)
+
+    Returns:
+        None
+    """
+    if bioproject_id:
+        bioproject_id = get_bioproject_uid(bioproject_id)
+    else:
+        raise ValueError("Se necesita de un BioprojectId para la búsqueda del genoma")
+
+
+def my_parser() -> ap.Namespace:
+    parser = ap.ArgumentParser(
+        description="Pipeline para la descarga y consulta de lecturas de SRA y genoma dereferencia asocidos a un BioProject")
+    parser.add_argument("-p", "--project", required=True, help="BioProject ID (e.g., PRJNA877658)")
+    parser.add_argument("-e", "--email", required=True, help="Email para NCBI Entrez")
+    parser.add_argument("-a", "--api_key", required=False, help="API key para NCBI Entrez")
+    parser.add_argument("-om", "--outdirm", required=False, default="docs/", help="Directorio de salida para metadatos")
+    parser.add_argument("-od", "--outdird", required=False, default="data/", help="Directorio de salida para datos")
+    parser.add_argument("--thr_fq", required=False, type=int, default=8, help="Workers para faster-dump")
+    parser.add_argument("-r", "--reference", required=False, default=True, help="Descarga del genoma de referencia")
+    return parser.parse_args()

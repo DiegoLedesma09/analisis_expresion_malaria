@@ -1,30 +1,73 @@
 """
-En este módulo, nos encargaremos de la descarga de los datos. De igual manera, haremos una función para cada una de las siguientes cosas
-con el fin de hacerlo más reproducible. Las instrucciones de cada uno de los módulos son los siguientes.
+download_data.py
+================
 
-Funciones:
-Y    - Una función que permita introducir el email y la api.key
-Y    - Una función que obtenga toda la información del BioProject del proyecto (Metadatos) más importante.
-    Guardar el resultado en un archivo denominado bioproject_metadata y guardarlo en docs/. 
-Y    - Una función que obtenga todos los biosamples y SRA asociados al correspondiente Bioproject. Regresar dos listas.
-    Una con los IDs de Biosamples asociados y otra con los SRA asociados al BioProject (Imprimir uno debajo de
-    otro).
-Y    - Dos funciones. De la misma manera guardar los mismos metadatos de los BioSamples asociados al BioProject y de los SRA.
-     Guardarlos en los archivos correspondientes biosample_metadata y sra_metadata.
-Y    - Una función que se encargue de buscar y descargar los archivos FASTA asociados a los SRA. Guardar las lecturas obtenidas en
-    la carpeta de data/raw/resistent o data/raw/susceptible
-    - Una función que guarde los metadatos del Genoma del organismo del BioProject, desde la plataforma de Genome.
-    Guardar el resultado en un archivo denominado genome_metadata en docs/
-    - Una función que se encargue de buscar y descargar el genoma del organismo del BioProject desde la plataforma
-    de Genome. Guardar el resultado en un archivo denominado genome_{organismo}.fasta en la data/genome/
-    - Una función argparse con los argumentos de -p --project (Una string que de el BioProject), -e --email (String),
-    -o --outdir (path), -c --concat (Un booleano que indique sí quiere concatenar), -r --reference (Un booleano que indique sí se quiere el genoma o no),
-""" 
+Módulo para la descarga y consulta de datos de un BioProject de NCBI.
+
+A partir de un identificador de BioProject (por ejemplo, PRJNA170440), obtiene
+sus metadatos, los BioSamples y SRA asociados, descarga las lecturas
+clasificadas por fenotipo (susceptible o resistente) y, opcionalmente,
+consulta el genoma de referencia del organismo.
+
+Requisitos:
+    - Biopython (Bio.Entrez)
+    - sra-tools (fasterq-dump disponible en el PATH). En Windows debe
+      ejecutarse desde WSL (Ubuntu), ya que sra-tools no existe para win-64.
+    - Conexión a internet y un correo electrónico para NCBI Entrez.
+
+Funciones principales:
+    configurate_entrez          Configura el email y la API key de Entrez.
+    get_bioproject_uid          Obtiene el UID numérico interno de un BioProject.
+    get_bioproject_metadata     Guarda los metadatos del BioProject.
+    get_biosamples_and_sra      Regresa los IDs de BioSamples y SRA asociados.
+    save_biosample_metadata     Guarda los metadatos de los BioSamples.
+    save_sra_metadata           Guarda los metadatos de los SRA.
+    download_sra_lectures       Descarga las lecturas con fasterq-dump y las
+                                separa por fenotipo.
+    get_bioproject_organism     Regresa el organismo asociado al Bioproject.
+    get_genome_metadata         Guarda los metadatos del genoma de referencia
+                                (base de datos assembly).
+    get_reference_assembly      Busca el ensamble de referencia del organismo
+                                del Bioproject.
+    download_reference_genome   Descarga del genoma de referencia (en desarrollo).
+    my_parser                   Define los argumentos de línea de comandos.
+    main                        Ejecuta el flujo completo.
+
+Archivos generados (rutas relativas al directorio donde se ejecuta):
+    docs/bioproject_metadata
+    docs/biosample_metadata
+    docs/sra_metadata
+    docs/genome_metadata
+    data/raw/susceptible/sra_runs/     Lecturas de la cepa susceptible
+    data/raw/resistent/sra_runs/       Lecturas de la cepa resistente
+
+Argumentos:
+    -p,  --project      BioProject ID (obligatorio).
+    -e,  --email        Email para NCBI Entrez (obligatorio).
+    -a,  --api_key      API key de NCBI para agilizar las consultas.
+    -om, --outdirm      Directorio de salida de los metadatos (default: docs/).
+    -od, --outdird      Directorio de salida de los datos (default: data/).
+    --thr_fq            Workers para fasterq-dump (default: 8).
+    -r,  --reference    Incluye el genoma de referencia (default).
+         --no-reference Omite el genoma de referencia.
+
+Uso:
+    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com
+    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com --no-reference
+
+Nota:
+    Ejecutar desde la raíz del proyecto, ya que las rutas de salida por defecto
+    son relativas.
+"""
 
 import argparse as ap
+import gzip
 import os
 import re
+import shutil
 import subprocess
+import sys
+import urllib.request
 from urllib.error import HTTPError, URLError
 
 from Bio import Entrez
@@ -315,7 +358,35 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
         except subprocess.CalledProcessError as e:
             raise ValueError(f"Error al descargar {sra_id} con fasterq-dump {e}")
 
-def get_genome_metadata(bioproject_id: str, outdir: str = "docs/"):
+def get_bioproject_organism(bioproject_id:str) -> str:
+    """
+    Encuentra al organismo muestra del Bioproject asociado
+
+    Args:
+        bioproject_id (str) -> Identificador del Bioproject
+    
+    Returns:
+        organism (str) -> Organismo asociado al Bioproject
+    """
+    try:
+        project_uid = get_bioproject_uid(bioproject_id)
+        with Entrez.esummary(db="bioproject", id=project_uid) as handle_bp:
+            record_bp = Entrez.read(handle_bp)
+
+            doc_bp = record_bp["DocumentSummarySet"]["DocumentSummary"][0]
+            organism = doc_bp.get("Organism_Name")
+
+            if not organism:
+                raise ValueError(f"No se encontró organismo asociado al Bioproject {bioproject_id}")
+
+            return organism
+
+    except HTTPError as e:
+        raise ConnectionError(f"NCBI respondió con error {e.code} para {bioproject_id}") from e
+    except (URLError, RuntimeError) as e:
+        raise ConnectionError(f"No se pudo consultar NCBI para {bioproject_id}: {e}") from e
+
+def get_genome_metadata(bioproject_id:str, outdir:str="docs/"):
         """
         Decarga los metadatos del genoma de referencia asociado al 
         organismo del Bioproject desde la base de datos 'assembly' de 
@@ -328,16 +399,7 @@ def get_genome_metadata(bioproject_id: str, outdir: str = "docs/"):
         # Asegurar que la carpeta del destino exista
         os.makedirs(outdir, exist_ok=True)
 
-        project_uid = get_bioproject_uid(bioproject_id)
-        handle_bp = Entrez.esummary(db="bioproject", id=project_uid)
-        record_bp = Entrez.read(handle_bp)
-        handle_bp.close()
-
-        doc_bp = record_bp["DocumentSummarySet"]["DocumentSummary"][0]
-        organism = doc_bp.get("Organism_Name")
-        if not organism:
-            print(f"No se pudo determinar el organismo para {bioproject_id}")
-        return
+        organism = get_bioproject_organism(bioproject_id)
 
         print(f"Buscando genoma de referencia para: {organism}")
 
@@ -362,47 +424,173 @@ def get_genome_metadata(bioproject_id: str, outdir: str = "docs/"):
             f.write(f"====== Metadatos del Genoma asociado al BioProject: {bioproject_id} ======\n\n")
 
             doc = record_genome["DocumentSummarySet"]["DocumentSummary"][0]
-            
-        campos_interes = [
-            "AssemblyAccession",
-            "AssemblyName",
-            "AssemblyStatus",
-            "Organism",
-            "RefSeq_category",
-            "FtpPath_RefSeq",
-            "FtpPath_GenBank",
-        ]
-        f.writelines(f"{campo} \t {doc.get(campo, 'N/A')}\n" for campo in campos_interes)
 
-        print(f"Metadatos del genoma guardados en: {output_path}")
+            campos_interes = [
+                "AssemblyAccession",
+                "AssemblyName",
+                "AssemblyStatus",
+                "Organism",
+                "RefSeq_category",
+                "FtpPath_RefSeq",
+                "FtpPath_GenBank",
+            ]
+            f.writelines(f"{campo} \t {doc.get(campo, 'N/A')}\n" for campo in campos_interes)
 
-def download_reference_genome(bioproject_id:str, outdir:str = "data/", w:int = 8) -> None:
+            print(f"Metadatos del genoma guardados en: {output_path}")
+
+def get_reference_assembly(organism: str) -> dict:
     """
-    Descarga el genoma de referencia correspondiente al organismo del Bioproject,
-    lo guarda en un directorio correspondiente.
+    Busca en la base de datos 'assembly' el ensamblaje de referencia de un
+    organismo y regresa su documento de metadatos.
+
+    Args:
+        organism (str) -> Nombre del organismo
+
+    Returns:
+        dict -> Documento del ensamblaje (incluye campos como FtpPath_RefSeq)
+    """
+    try:
+        term = f'{organism}[Organism] AND "reference genome"[filter]'
+        with Entrez.esearch(db="assembly", term=term) as handle:
+            record_search = Entrez.read(handle)
+
+        assembly_uids = record_search["IdList"]
+        if not assembly_uids:
+            raise ValueError(f"No se encontró ensamblaje de referencia para {organism}")
+
+        with Entrez.esummary(db="assembly", id=assembly_uids[0], report="full") as handle:
+            record_genome = Entrez.read(handle)
+
+        return record_genome["DocumentSummarySet"]["DocumentSummary"][0]
+
+    except HTTPError as e:
+        raise ConnectionError(f"NCBI respondió con error {e.code} para {organism}") from e
+    except (URLError, RuntimeError) as e:
+        raise ConnectionError(f"No se pudo consultar NCBI para {organism}: {e}") from e
+
+
+def download_reference_genome(bioproject_id: str, outdir: str = "data/") -> None:
+    """
+    Descarga el genoma de referencia del organismo del BioProject y lo guarda
+    descomprimido en data/genome/genome_{organismo}.fasta.
 
     Args:
         bioproject_id (str) -> Identificador del Bioproject
-        outdir (str) -> Directorio de salida (por defecto '/data')
-        w (int) -> Número de workers (por defecto 8)
+        outdir (str) -> Directorio de salida (por defecto 'data/')
 
     Returns:
         None
     """
-    if bioproject_id:
-        bioproject_id = get_bioproject_uid(bioproject_id)
-    else:
-        raise ValueError("Se necesita de un BioprojectId para la búsqueda del genoma")
+    organism = get_bioproject_organism(bioproject_id)
+    assembly = get_reference_assembly(organism)
 
+    # Prefiere RefSeq y usa GenBank como respaldo
+    ftp_path = assembly.get("FtpPath_RefSeq") or assembly.get("FtpPath_GenBank")
+    if not ftp_path:
+        raise ValueError(f"El ensamblaje de {organism} no tiene ruta de descarga")
+
+    # La ruta apunta a una carpeta; el archivo repite su último segmento
+    base_url = ftp_path.replace("ftp://", "https://", 1).rstrip("/")
+    file_name = f"{base_url.split('/')[-1]}_genomic.fna.gz"
+    url = f"{base_url}/{file_name}"
+
+    genome_dir = os.path.join(outdir, "genome")
+    os.makedirs(genome_dir, exist_ok=True)
+
+    safe_name = re.sub(r"\W+", "_", organism).strip("_")
+    fasta_path = os.path.join(genome_dir, f"genome_{safe_name}.fasta")
+
+    if os.path.exists(fasta_path):
+        print(f"El genoma ya existe, se omite la descarga: {fasta_path}")
+        return
+
+    # Archivos temporales: solo se renombran al terminar bien
+    gz_tmp = fasta_path + ".gz.part"
+    fasta_tmp = fasta_path + ".part"
+
+    print(f"Descargando genoma de {organism} desde {url}")
+    try:
+        urllib.request.urlretrieve(url, gz_tmp)
+
+        with gzip.open(gz_tmp, "rb") as f_in, open(fasta_tmp, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+        os.replace(fasta_tmp, fasta_path)
+        print(f"Genoma guardado en: {fasta_path}")
+
+    except HTTPError as e:
+        raise ConnectionError(f"No se pudo descargar {url}: error {e.code}") from e
+    except URLError as e:
+        raise ConnectionError(f"No se pudo descargar {url}: {e}") from e
+    except (gzip.BadGzipFile, EOFError) as e:
+        raise ValueError(f"El archivo descargado está corrupto o incompleto: {e}") from e
+    finally:
+        for tmp in (gz_tmp, fasta_tmp):
+            if os.path.exists(tmp):
+                os.remove(tmp)
 
 def my_parser() -> ap.Namespace:
+    """
+    Retiene los argumentos deseados para el módulo desde línea de comandos.
+
+    Args:
+        None
+    
+    Returns:
+        ap.Namespace: Argumentos indicados por el usuario
+    """    
     parser = ap.ArgumentParser(
-        description="Pipeline para la descarga y consulta de lecturas de SRA y genoma dereferencia asocidos a un BioProject")
+    description="Pipeline para la descarga y consulta de lecturas de SRA y genoma dereferencia asocidos a un BioProject")
     parser.add_argument("-p", "--project", required=True, help="BioProject ID (e.g., PRJNA877658)")
     parser.add_argument("-e", "--email", required=True, help="Email para NCBI Entrez")
     parser.add_argument("-a", "--api_key", required=False, help="API key para NCBI Entrez")
     parser.add_argument("-om", "--outdirm", required=False, default="docs/", help="Directorio de salida para metadatos")
     parser.add_argument("-od", "--outdird", required=False, default="data/", help="Directorio de salida para datos")
     parser.add_argument("--thr_fq", required=False, type=int, default=8, help="Workers para faster-dump")
-    parser.add_argument("-r", "--reference", required=False, default=True, help="Descarga del genoma de referencia")
+    parser.add_argument("-r", "--reference", action=ap.BooleanOptionalAction, default=True, 
+                        help="Descarga del genoma de referencia (usa --no-reference para omitirlo)")
     return parser.parse_args()
+
+def main() -> None:
+    """
+    Ejecuta el flujo completo de descarga para un BioProject.
+
+    Pasos, en orden:
+        1. Configura Entrez con el email y la API key.
+        2. Guarda los metadatos del BioProject.
+        3. Obtiene los BioSamples y SRA asociados, y guarda sus metadatos.
+        4. Descarga las lecturas de los SRA, separadas por fenotipo.
+        5. Si --reference está activo, guarda los metadatos del genoma de
+           referencia y lo descarga.
+
+    Los argumentos se leen de la línea de comandos mediante my_parser().
+
+    Returns:
+        None
+    """
+    args = my_parser()
+
+    try:
+        configurate_entrez(args.email, args.api_key)
+
+        # Metadatos del BioProject
+        get_bioproject_metadata(args.project, outdir=args.outdirm)
+
+        # BioSamples y SRA (se consultan una vez y se reutilizan)
+        biosample_ids, sra_ids = get_biosamples_and_sra(args.project)
+        save_biosample_metadata(biosample_ids, args.project, outdir=args.outdirm)
+        save_sra_metadata(sra_ids, args.project, outdir=args.outdirm)
+
+        # Lecturas
+        download_sra_lectures(args.project, outdir=args.outdird, w=args.thr_fq)
+
+        # Genoma de referencia (opcional)
+        if args.reference:
+            get_genome_metadata(args.project, outdir=args.outdirm)
+            download_reference_genome(args.project, outdir=args.outdird)
+
+    except (ConnectionError, ValueError) as e:
+        sys.exit(f"Error: {e}")
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 """
 En este módulo, nos encargaremos de la descarga de los datos. De igual manera, haremos una función para cada una de las siguientes cosas
 con el fin de hacerlo más reproducible. Las instrucciones de cada uno de los módulos son los siguientes.
@@ -333,6 +334,8 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/"):
 
 
 =======
+=======
+>>>>>>> b04a8ea (Resolving the merge conflicts in download_data.py)
 """
 En este módulo, nos encargaremos de la descarga de los datos. De igual manera, haremos una función para cada una de las siguientes cosas
 con el fin de hacerlo más reproducible. Las instrucciones de cada uno de los módulos son los siguientes.
@@ -651,9 +654,73 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
             raise ValueError(f"Error al descargar {sra_id} con fasterq-dump {e}")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     
 >>>>>>> 7ba079d (Updating download_sra_runs functions in download_data.py module)
 =======
+=======
+def get_genome_metadata(bioproject_id: str, outdir: str = "docs/"):
+        """
+        Decarga los metadatos del genoma de referencia asociado al 
+        organismo del Bioproject desde la base de datos 'assembly' de 
+        NCBI y los guarda en el archivo docs/genome_metadata.
+
+        Args:
+            bioproject_id (str) -> Identificador del BioProject. 
+            outdir (str) -> Directorio de salida (por defecto '/docs').
+        """
+        # Asegurar que la carpeta del destino exista
+        os.makedirs(outdir, exist_ok=True)
+
+        project_uid = get_bioproject_uid(bioproject_id)
+        handle_bp = Entrez.esummary(db="bioproject", id=project_uid)
+        record_bp = Entrez.read(handle_bp)
+        handle_bp.close()
+
+        doc_bp = record_bp["DocumentSummarySet"]["DocumentSummary"][0]
+        organism = doc_bp.get("Organism_Name")
+        if not organism:
+            print(f"No se pudo determinar el organismo para {bioproject_id}")
+        return
+
+        print(f"Buscando genoma de referencia para: {organism}")
+
+        handle_search = Entrez.esearch(db="assembly", term=f'{organism}[Organism] AND "reference genome"[filter]')
+        record_search = Entrez.read(handle_search)
+        handle_search.close()
+
+        assembly_uids = record_search["IdList"]
+        if not assembly_uids:
+            print(f"No se encontró ensamblaje de referencia para {organism}")
+            return
+        
+        assembly_uid = assembly_uids[0]
+
+        handle_genome = Entrez.esummary(db="assembly", id=assembly_uid, report="full")
+        record_genome = Entrez.read(handle_genome)
+        handle_genome.close()
+
+        output_path = os.path.join(outdir, "genome_metadata")
+        
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(f"====== Metadatos del Genoma asociado al BioProject: {bioproject_id} ======\n\n")
+
+            doc = record_genome["DocumentSummarySet"]["DocumentSummary"][0]
+            
+        campos_interes = [
+            "AssemblyAccession",
+            "AssemblyName",
+            "AssemblyStatus",
+            "Organism",
+            "RefSeq_category",
+            "FtpPath_RefSeq",
+            "FtpPath_GenBank",
+        ]
+        f.writelines(f"{campo} \t {doc.get(campo, 'N/A')}\n" for campo in campos_interes)
+
+        print(f"Metadatos del genoma guardados en: {output_path}")
+
+>>>>>>> b04a8ea (Resolving the merge conflicts in download_data.py)
 def download_reference_genome(bioproject_id:str, outdir:str = "data/", w:int = 8) -> None:
     """
     Descarga el genoma de referencia correspondiente al organismo del Bioproject,
@@ -683,5 +750,9 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("-od", "--outdird", required=False, default="data/", help="Directorio de salida para datos")
     parser.add_argument("--thr_fq", required=False, type=int, default=8, help="Workers para faster-dump")
     parser.add_argument("-r", "--reference", required=False, default=True, help="Descarga del genoma de referencia")
+<<<<<<< HEAD
     return parser.parse_args()
 >>>>>>> 1d019bd (Adding funtions structure download_genome and improving documentation in download_data.py module)
+=======
+    return parser.parse_args()
+>>>>>>> b04a8ea (Resolving the merge conflicts in download_data.py)

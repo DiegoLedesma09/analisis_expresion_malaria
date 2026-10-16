@@ -9,3 +9,4 @@ dependencies:
   - trimmomatic
   - fastqc
   - matplotlib
+  - python=3.12

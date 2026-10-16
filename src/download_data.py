@@ -32,7 +32,8 @@ Funciones principales:
     count_reads                 Cuenta las lecturas de los archivos.
     plot_reads_proportion       Cuenta las lecturas de las muestras resistentes y
                                 susceptibles y grafica la proporción por grupo.
-    download_reference_genome   Descarga del genoma de referencia (en desarrollo).
+    download_reference_genome   Descarga del genoma de referencia.
+    setup_logging               Configura el logging del módulo.            
     my_parser                   Define los argumentos de línea de comandos.
     main                        Ejecuta el flujo completo.
 
@@ -56,10 +57,12 @@ Argumentos:
          --no-reference Omite el genoma de referencia.
     -g,  --graphic      Incluye el gráfico comparativo de proporción de lecturas (default).
          --no-graphic   Omite el gráfico comparativo de proporción de lecturas.
+    -v,  --verbose      Muestra mensajes DEBUG.
+    --log_file          Guarda el archivo de log.
 
 Uso:
-    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com
-    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com --no-reference --no-graphic
+    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com -v
+    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com --no-reference --no-graphic -log_file
 
 Nota:
     Ejecutar desde la raíz del proyecto, ya que las rutas de salida por defecto
@@ -69,6 +72,7 @@ Nota:
 import argparse as ap
 import glob
 import gzip
+import logging
 import os
 import re
 import shutil
@@ -80,6 +84,7 @@ from urllib.error import HTTPError, URLError
 import matplotlib.pyplot as plt
 from Bio import Entrez
 
+logger = logging.getLogger(__name__)
 
 def configurate_entrez(email:str, api_key:str) -> None:
     """
@@ -98,7 +103,7 @@ def configurate_entrez(email:str, api_key:str) -> None:
     
     Entrez.email = email
     Entrez.api_key = api_key if api_key else None
-    print(f"Se ha configurado Entrez con el email: {email}")
+    logger.info("Entrez configurado con el email: %s (API key: %s)", email, "entregada" if api_key else "no")
 
 def get_bioproject_uid(bioproject_id: str) -> str:
     """
@@ -112,12 +117,14 @@ def get_bioproject_uid(bioproject_id: str) -> str:
     """
 
     try:
+        logger.debug("Consultando UID de %s", bioproject_id)
         with Entrez.esearch(db="bioproject", term=bioproject_id) as handle:
             record = Entrez.read(handle)
             id_list = record.get("IdList", [])
             if not id_list:
                 raise ValueError(f"No se encontró el BioProject: {bioproject_id}")
-            
+
+        logger.debug("UID de %s: %s", bioproject_id, id_list[0])   
         return id_list[0]
 
     except HTTPError as e:
@@ -140,7 +147,6 @@ def get_bioproject_metadata(bioproject_id: str, outdir = "docs") -> None:
     # Asegurar que la carpeta del destino exista
     os.makedirs(outdir, exist_ok=True)
 
-
     project_uid = get_bioproject_uid(bioproject_id)
 
     resumen_handle = Entrez.esummary(db="bioproject", id=project_uid)
@@ -152,10 +158,10 @@ def get_bioproject_metadata(bioproject_id: str, outdir = "docs") -> None:
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(f"======Metadatos del BioProject: {bioproject_id}======\n")
 
-        doc = resumen_record["DocumentSummary"][0]
+        doc = resumen_record["DocumentSummarySet"]["DocumentSummary"][0]
         f.writelines(f"{key} \t {value}\n" for key, value in doc.items())
 
-    print(f"Metadatos guardados correctamente en: {output_path}")
+    logger.info("... guardados en: %s", output_path)
 
 def get_biosamples_and_sra(bioproject_id: str) -> tuple[list[str], list[str]]:
     """
@@ -200,11 +206,13 @@ def get_biosamples_and_sra(bioproject_id: str) -> tuple[list[str], list[str]]:
     # Imprimir uno debajo del otro
     print(f"\n======BioSamples asociados a {bioproject_id}======")
     for bs in biosample_ids:
-        print(bs)
+        logger.info("%s", bs)
 
     print(f"\n======SRA asociados a {bioproject_id}======")
     for sra in sra_ids:
-        print(sra)
+        logger.info("%s", sra)
+
+    logger.info("%d BioSamples y %d SRA asociados a %s", len(biosample_ids), len(sra_ids), bioproject_id)
 
     return biosample_ids, sra_ids
 
@@ -222,7 +230,7 @@ def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir
         None
     """
     if not biosample_ids:
-        print("No hay BioSamples para guardar")
+        logger.warning("No hay BioSamples para guardar")
         return
 
     os.makedirs(outdir, exist_ok=True)
@@ -249,7 +257,7 @@ def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir
             f.write(f"Organism \t {doc.get('Organism', 'N/A')}\n")
             f.write(f"ProjectAccession \t {doc.get('ProjectAccession', 'N/A')}\n")
 
-    print(f"Metadatos de BioSamples guardados correctamente en: {output_path}")
+    logger.info("... guardados en: %s", output_path)
 
 def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "docs") -> None:
     """
@@ -265,7 +273,7 @@ def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "doc
         None
     """
     if not sra_ids:
-        print("No hay SRA para guardar.")
+        logger.warning("No hay SRA para guardar.")
         return
     
     os.makedirs(outdir, exist_ok=True)
@@ -297,7 +305,7 @@ def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "doc
                 srr_accession = partes[1].split('"')[0]
             f.write(f"Run Accession (SRR) \t {srr_accession}\n")
 
-    print(f"Metadatos de SRA guardados correctamente en: {output_path}")
+    logger.info("... guardados en: %s", output_path)
 
 def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) -> None:
     """
@@ -324,7 +332,7 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
     os.makedirs(resistent_dir, exist_ok=True)
 
     # Busco en Sra el sra_id buscando sí es la cepa Susceptible o Resistente al insecticida
-    for sra_id in sra_ids:
+    for i, sra_id in enumerate(sra_ids, start=1):
         handle_sra = Entrez.esummary(db="sra", id=sra_id)
         record = Entrez.read(handle_sra)
         exp_xml = record[0]["ExpXml"]
@@ -349,7 +357,7 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
             domain_dir = os.path.join(outdir, "raw", file_domain, "sra_runs")
             os.makedirs(domain_dir, exist_ok=True)
         
-        print(f"Descargando la corrida {sra_id} ({fenotipo}, hacia {domain_dir})")
+        logger.info("[%d/%d] Descargando %s (%s) hacia %s", i, len(sra_ids), sra_id, fenotipo, domain_dir)
         
         # Mediante subprocess, uso la libreria de fasterq-dump para descargar las lecturas
         # desde SRA, separando las dos lecturas pareadas y uso 8 workers
@@ -362,7 +370,7 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
         
         try:
             subprocess.run(cmd, check=True)
-            print(f"Descarga exitosa {sra_id}")
+            logger.info("Descarga exitosa: %s", sra_id)
         except subprocess.CalledProcessError as e:
             raise ValueError(f"Error al descargar {sra_id} con fasterq-dump {e}")
 
@@ -409,7 +417,7 @@ def get_genome_metadata(bioproject_id:str, outdir:str="docs/"):
 
         organism = get_bioproject_organism(bioproject_id)
 
-        print(f"Buscando genoma de referencia para: {organism}")
+        logger.info("Buscando genoma de referencia para: %s", organism)
 
         handle_search = Entrez.esearch(db="assembly", term=f'{organism}[Organism] AND "reference genome"[filter]')
         record_search = Entrez.read(handle_search)
@@ -417,7 +425,7 @@ def get_genome_metadata(bioproject_id:str, outdir:str="docs/"):
 
         assembly_uids = record_search["IdList"]
         if not assembly_uids:
-            print(f"No se encontró ensamblaje de referencia para {organism}")
+            logger.warning("No se encontró ensamblaje de referencia para %s", organism)
             return
         
         assembly_uid = assembly_uids[0]
@@ -444,7 +452,7 @@ def get_genome_metadata(bioproject_id:str, outdir:str="docs/"):
             ]
             f.writelines(f"{campo} \t {doc.get(campo, 'N/A')}\n" for campo in campos_interes)
 
-            print(f"Metadatos del genoma guardados en: {output_path}")
+            logger.info("Metadatos del genoma guardados en: %s", output_path)
 
 def get_reference_assembly(organism: str) -> dict:
     """
@@ -509,14 +517,14 @@ def download_reference_genome(bioproject_id: str, outdir: str = "data/") -> None
     fasta_path = os.path.join(genome_dir, f"genome_{safe_name}.fasta")
 
     if os.path.exists(fasta_path):
-        print(f"El genoma ya existe, se omite la descarga: {fasta_path}")
+        logger.info("El genoma ya existe, se omite la descarga: %s", fasta_path)
         return
 
     # Archivos temporales: solo se renombran al terminar bien
     gz_tmp = fasta_path + ".gz.part"
     fasta_tmp = fasta_path + ".part"
 
-    print(f"Descargando genoma de {organism} desde {url}")
+    (f"Descargando genoma de {organism} desde {url}")
     try:
         urllib.request.urlretrieve(url, gz_tmp)
 
@@ -556,7 +564,7 @@ def count_reads(fastq_path: str) -> int:
     return n_lines // 4
 
 
-def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/") -> dict[str, int]:
+def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/") -> None:
     """
     Cuenta las lecturas de las muestras resistentes y susceptibles y grafica
     la proporción de cada grupo. Guarda la figura en results/reads_proportion.png.
@@ -579,6 +587,7 @@ def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/") -> 
         fastqs = [f for f in glob.glob(os.path.join(runs_dir, "*.fastq*"))
                   if not re.search(r"_2\.fastq", f)]
         counts[phenotype] = sum(count_reads(f) for f in fastqs)
+        logger.info("%s: %d lecturas", phenotype, counts[phenotype])
 
     total = sum(counts.values())
     if total == 0:
@@ -601,7 +610,29 @@ def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/") -> 
     fig.savefig(output_path, dpi=300)
     plt.close(fig)
 
-    print(f"Figura guardada en: {output_path}")
+    logger.info("Figura guardada en: %s", output_path)
+
+def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
+    """
+    Configura el logging del módulo: consola (stdout) y, opcionalmente, archivo.
+
+    Args:
+        verbose (bool) -> Si es True, muestra mensajes DEBUG
+        log_file (str | None) -> Ruta del archivo de log (None para no guardarlo)
+
+    Returns:
+        None
+    """
+    handlers = [logging.StreamHandler(sys.stdout)]
+    if log_file:
+        os.makedirs(os.path.dirname(log_file) or ".", exist_ok=True)
+        handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+
+    logging.basicConfig(
+        level=logging.DEBUG if verbose else logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=handlers,
+    )
 
 def my_parser() -> ap.Namespace:
     """
@@ -624,7 +655,9 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("-r", "--reference", action=ap.BooleanOptionalAction, default=True, 
                         help="Descarga del genoma de referencia (usa --no-reference para omitirlo)")
     parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,
-                        help="Incluye el grafico comparativo de proporcion de lecturas (usa --no-reference para omitirlo)")
+                        help="Incluye el grafico comparativo de proporcion de lecturas (usa --no-graphic para omitirlo)")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Muestra mensajes DEBUG")
+    parser.add_argument("--log_file", default="logs/download_data.log", help="Archivo de log")
     return parser.parse_args()
 
 def main() -> None:
@@ -647,6 +680,8 @@ def main() -> None:
         None
     """
     args = my_parser()
+    setup_logging(args.verbose, args.log_file)
+    logger.info("Inicio del pipeline para el BioProject %s", args.project)
 
     try:
         configurate_entrez(args.email, args.api_key)
@@ -671,8 +706,12 @@ def main() -> None:
         if args.graphic:
             plot_reads_proportion(data_dir="data/", outdir="results/")
 
+        logger.info("Pipeline terminado correctamente")
+
     except (ConnectionError, ValueError) as e:
-        sys.exit(f"Error: {e}")
+        logger.error("%s", e)
+        logger.debug("Detalle del error", exc_info=True)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

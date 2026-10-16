@@ -288,9 +288,7 @@ def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "doc
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(f"======Metadatos de SRA asociados al BioProject: {bioproject_id}======\n")
 
-        documentos_sra = record_sra.get("DocumentSummary",[])
-
-        for doc in documentos_sra:  
+        for doc in record_sra:  
             f.write(f"\n--- SRA ID: {doc.get('Id', 'Desconocido')} ---\n")  
             # Campos directos
             f.write(f"Experiment Accession (SRX) \t {doc.get('ExtId', 'N/A')}\n")

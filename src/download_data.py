@@ -367,6 +367,9 @@ Funciones principales:
                                 (base de datos assembly).
     get_reference_assembly      Busca el ensamble de referencia del organismo
                                 del Bioproject.
+    count_reads                 Cuenta las lecturas de los archivos.
+    plot_reads_proportion       Cuenta las lecturas de las muestras resistentes y
+                                susceptibles y grafica la proporción por grupo.
     download_reference_genome   Descarga del genoma de referencia (en desarrollo).
     my_parser                   Define los argumentos de línea de comandos.
     main                        Ejecuta el flujo completo.
@@ -378,6 +381,7 @@ Archivos generados (rutas relativas al directorio donde se ejecuta):
     docs/genome_metadata
     data/raw/susceptible/sra_runs/     Lecturas de la cepa susceptible
     data/raw/resistent/sra_runs/       Lecturas de la cepa resistente
+    results/reads_proportion
 
 Argumentos:
     -p,  --project      BioProject ID (obligatorio).
@@ -388,10 +392,12 @@ Argumentos:
     --thr_fq            Workers para fasterq-dump (default: 8).
     -r,  --reference    Incluye el genoma de referencia (default).
          --no-reference Omite el genoma de referencia.
+    -g,  --graphic      Incluye el gráfico comparativo de proporción de lecturas (default).
+         --no-graphic   Omite el gráfico comparativo de proporción de lecturas.
 
 Uso:
     python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com
-    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com --no-reference
+    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com --no-reference --no-graphic
 
 Nota:
     Ejecutar desde la raíz del proyecto, ya que las rutas de salida por defecto
@@ -399,6 +405,7 @@ Nota:
 """
 
 import argparse as ap
+import glob
 import gzip
 import os
 import re
@@ -408,6 +415,7 @@ import sys
 import urllib.request
 from urllib.error import HTTPError, URLError
 
+import matplotlib.pyplot as plt
 from Bio import Entrez
 
 
@@ -882,6 +890,72 @@ def download_reference_genome(bioproject_id: str, outdir: str = "data/") -> None
             if os.path.exists(tmp):
                 os.remove(tmp)
 
+def count_reads(fastq_path: str) -> int:
+    """
+    Cuenta las lecturas de un archivo FASTQ (cada lectura ocupa 4 líneas).
+    Acepta archivos comprimidos (.gz).
+
+    Args:
+        fastq_path (str) -> Ruta del archivo FASTQ
+
+    Returns:
+        int -> Número de lecturas
+    """
+    opener = gzip.open if fastq_path.endswith(".gz") else open
+    n_lines = 0
+    with opener(fastq_path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            n_lines += chunk.count(b"\n")
+    return n_lines // 4
+
+
+def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/") -> dict[str, int]:
+    """
+    Cuenta las lecturas de las muestras resistentes y susceptibles y grafica
+    la proporción de cada grupo. Guarda la figura en results/reads_proportion.png.
+
+    En datos pareados cuenta solo el archivo _1, para no duplicar fragmentos.
+
+    Args:
+        data_dir (str) -> Directorio de datos (por defecto 'data/')
+        outdir (str) -> Directorio de salida de la figura (por defecto 'results/')
+
+    Returns:
+        dict[str, int] -> Lecturas por fenotipo
+    """
+    counts = {}
+    for phenotype in ("resistent", "susceptible"):
+        runs_dir = os.path.join(data_dir, "raw", phenotype, "sra_runs")
+        if not os.path.isdir(runs_dir):
+            raise FileNotFoundError(f"No existe el directorio: {runs_dir}")
+
+        fastqs = [f for f in glob.glob(os.path.join(runs_dir, "*.fastq*"))
+                  if not re.search(r"_2\.fastq", f)]
+        counts[phenotype] = sum(count_reads(f) for f in fastqs)
+
+    total = sum(counts.values())
+    if total == 0:
+        raise ValueError("No se encontraron lecturas en los directorios de datos")
+
+    os.makedirs(outdir, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    bars = ax.bar(counts.keys(), counts.values(), color=["#d95f02", "#1b9e77"])
+    for bar, n in zip(bars, counts.values()):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                f"{n / total:.1%}\n({n:,})", ha="center", va="bottom")
+
+    ax.set_ylabel("Número de lecturas")
+    ax.set_title("Proporción de lecturas por fenotipo")
+    ax.set_ylim(0, max(counts.values()) * 1.2)
+
+    output_path = os.path.join(outdir, "reads_proportion.png")
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+
+    print(f"Figura guardada en: {output_path}")
+
 def my_parser() -> ap.Namespace:
     """
     Retiene los argumentos deseados para el módulo desde línea de comandos.
@@ -911,6 +985,8 @@ def my_parser() -> ap.Namespace:
 =======
     parser.add_argument("-r", "--reference", action=ap.BooleanOptionalAction, default=True, 
                         help="Descarga del genoma de referencia (usa --no-reference para omitirlo)")
+    parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,
+                        help="Incluye el grafico comparativo de proporcion de lecturas (usa --no-reference para omitirlo)")
     return parser.parse_args()
 
 def main() -> None:
@@ -924,6 +1000,8 @@ def main() -> None:
         4. Descarga las lecturas de los SRA, separadas por fenotipo.
         5. Si --reference está activo, guarda los metadatos del genoma de
            referencia y lo descarga.
+        6. Si --graphic está activo, crea el grafico comparativo de proporcion
+            de lecturas
 
     Los argumentos se leen de la línea de comandos mediante my_parser().
 
@@ -950,6 +1028,10 @@ def main() -> None:
         if args.reference:
             get_genome_metadata(args.project, outdir=args.outdirm)
             download_reference_genome(args.project, outdir=args.outdird)
+        
+        # Grafico comparativo (opcional)
+        if args.graphic:
+            plot_reads_proportion(data_dir="data/", outdir="results/")
 
     except (ConnectionError, ValueError) as e:
         sys.exit(f"Error: {e}")

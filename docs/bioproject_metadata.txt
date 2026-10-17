@@ -1,0 +1,35 @@
+======Metadatos del BioProject: PRJNA170440======
+TaxId 	 7165
+Project_Id 	 170440
+Project_Acc 	 PRJNA170440
+Project_Type 	 Primary submission
+Project_Data_Type 	 Transcriptome or Gene expression
+Sort_By_ProjectType 	 1048740
+Sort_By_DataType 	 1046050
+Sort_By_Organism 	 26123
+Project_Subtype 	 
+Project_Target_Scope 	 Multiisolate
+Project_Target_Material 	 Transcriptome
+Project_Target_Capture 	 Whole
+Project_MethodType 	 Sequencing
+Project_Method 	 
+Project_Objectives_List 	 [{'Project_ObjectivesType': 'Expression', 'Project_Objectives': ''}]
+Registration_Date 	 2012/07/11 00:00
+Project_Name 	 Anopheles gambiae
+Project_Title 	 Comparative transcriptome analyses of deltmethrin resistant and suscpetible Anopheles gambiae mosquitoes
+Project_Description 	 we report the RNA-seq based analyses of the transcriptional changes in the Anopheles gambiae mosquitoes from East Africa classified as deltamethrin-resistant or -suscpetible accordign the WHO test Overall design: comparison of the transcriptome of Anopheles gambiae mosquitoes with phenotypically resistant or suscpetible to deltamethrin
+Keyword 	 
+Relevance_Agricultural 	 
+Relevance_Medical 	 Yes
+Relevance_Industrial 	 
+Relevance_Environmental 	 
+Relevance_Evolution 	 
+Relevance_Model 	 
+Relevance_Other 	 
+Organism_Name 	 Anopheles gambiae
+Organism_Strain 	 
+Organism_Label 	 
+Sequencing_Status 	 SRA/Trace
+Submitter_Organization 	 Univ of California Irvine
+Submitter_Organization_List 	 ['Univ of California Irvine']
+Supergroup 	 Eukaryotes

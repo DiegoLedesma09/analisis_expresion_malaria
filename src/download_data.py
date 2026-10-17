@@ -154,7 +154,7 @@ def get_bioproject_metadata(bioproject_id: str, outdir = "docs") -> None:
     resumen_handle.close()
 
     # Guardar el resultado en un archivo denominado bioproject_metadata en docs/
-    output_path = os.path.join(outdir, "bioproject_metadata")
+    output_path = os.path.join(outdir, "bioproject_metadata.txt")
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(f"======Metadatos del BioProject: {bioproject_id}======\n")
 
@@ -242,7 +242,7 @@ def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir
     metadata_bs_record = Entrez.read(metadata_bs_handle)
     metadata_bs_handle.close()
 
-    output_path= os.path.join(outdir, "biosample_metadata")
+    output_path= os.path.join(outdir, "biosample_metadata.txt")
     with open(output_path, "w", encoding="utf-8") as f:
 
         f.write(f"====== Metadatos de BioSamples asociados a {bioproject_id} ======\n")
@@ -284,7 +284,7 @@ def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "doc
     record_sra = Entrez.read(handle_sra)
     handle_sra.close()
 
-    output_path = os.path.join(outdir, "sra_metadata")
+    output_path = os.path.join(outdir, "sra_metadata.txt")
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(f"======Metadatos de SRA asociados al BioProject: {bioproject_id}======\n")
 
@@ -334,6 +334,12 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
         handle_sra = Entrez.esummary(db="sra", id=sra_id)
         record = Entrez.read(handle_sra)
         exp_xml = record[0]["ExpXml"]
+
+	# Busco los identificadores de la corrida completos
+        runs_xml = record[0]["Runs"]
+        run_accessions = re.findall(r'acc="([SED]RR\d+)"', runs_xml)
+        if not run_accessions:
+            raise ValueError(f"No se encontró accession de corrida (SRR) para el SRA {sra_id}")
         handle_sra.close()
 
         # Mediante una función regex, busco el campo que me diga el fenotipo
@@ -359,18 +365,21 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
         
         # Mediante subprocess, uso la libreria de fasterq-dump para descargar las lecturas
         # desde SRA, separando las dos lecturas pareadas y uso 8 workers
-        cmd = ["fasterq-dump", 
-            sra_id, 
-            "-O", domain_dir, 
-            "--split-files", 
-            "-e", str(w)
-            ]
-        
-        try:
-            subprocess.run(cmd, check=True)
-            logger.info("Descarga exitosa: %s", sra_id)
-        except subprocess.CalledProcessError as e:
-            raise ValueError(f"Error al descargar {sra_id} con fasterq-dump {e}")
+	
+        for run in run_accessions:
+            logger.info("[%d/%d] Descargando %s (%s) hacia %s", i, len(sra_ids), run, fenotipo, domain_dir)
+
+            cmd = ["fasterq-dump",
+                   run,
+                   "-O", domain_dir,
+                   "--split-files",
+                   "-e", str(w)]
+
+            try:
+                subprocess.run(cmd, check=True)
+                logger.info("Descarga exitosa: %s", run)
+            except subprocess.CalledProcessError as e:
+                raise ValueError(f"Error al descargar {run} con fasterq-dump {e}") from e
 
 def get_bioproject_organism(bioproject_id:str) -> str:
     """
@@ -432,7 +441,7 @@ def get_genome_metadata(bioproject_id:str, outdir:str="docs/"):
         record_genome = Entrez.read(handle_genome)
         handle_genome.close()
 
-        output_path = os.path.join(outdir, "genome_metadata")
+        output_path = os.path.join(outdir, "genome_metadata.txt")
         
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(f"====== Metadatos del Genoma asociado al BioProject: {bioproject_id} ======\n\n")

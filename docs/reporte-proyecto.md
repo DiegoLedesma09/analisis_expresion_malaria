@@ -8,12 +8,12 @@
 | Integrante 2 | Ledesma Gallegos Diego  diegolg@lcg.unam.mx |
 | Integrante 3 | Muñoz Muñoz Luis Angel  luismm@lcg.unam.mx |
 | Fecha de creación | 25/08/2026 |
-| Última actualización | 19/09/2026 |
+| Última actualización | 17/00/2026 |
 | Repositorio | https://github.com/DiegoLedesma09/analisis_expresion_malaria.git |
 
 ## Resumen del proyecto
 
-Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a insecticidas frente a los susceptibles, con el objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia a insecticidas. El proyecto no ahondará en el análisis comparativo poblacional de metagenomas.
+Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes al insecticida **deltmetrina** frente a los susceptibles, con el objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia a insecticidas. El proyecto no ahondará en el análisis comparativo poblacional de metagenomas.
 
 ## 1. Contexto y antecedentes
 
@@ -26,7 +26,7 @@ EJEMPLO: La resistencia antimicrobiana es un problema de salud pública. Aunque
 existen bases especializadas, comparar varios genomas requiere integrar datos
 procedentes de distintos archivos. -->
 
-La malaria (o paludismo) es una enfermedad causada por un parásito Plasmodium, el cual es trasmitido por la picadura de un mosquito infectado. Sólo el género anófeles del mosquito transmite la malaria. Los síntomas de esta enfermedad pueden incluir fiebre, vómito y/o dolor de cabeza. La forma clásica de manifestación en el organismo es fiebre, sudoración y escalofríos, que aparecen 10 a 15 días después de la picadura del mosquito. Dado a esto es un problema de salud publica en África subsahariana con su morbilidad y mortalidad asociada afecta esta población.
+La malaria (o paludismo) es una enfermedad causada por un parásito Plasmodium, el cual es trasmitido por la picadura de un mosquito infectado. Sólo el género *Anopheles* del mosquito transmite la malaria. Los síntomas de esta enfermedad pueden incluir fiebre, vómito y/o dolor de cabeza. La forma clásica de manifestación en el organismo es fiebre, sudoración y escalofríos, que aparecen 10 a 15 días después de la picadura del mosquito. Dado a esto es un problema de salud publica en África subsahariana con su morbilidad y mortalidad asociada afecta esta población.
 
 El control de la malaria se basa en el uso de intervenciones basadas en productos químicos en forma de mosquiteros tratados con insecticida de larga duración y pulverización residual en interiores.
 
@@ -88,7 +88,7 @@ de presencia y ausencia obtenida de las anotaciones. -->
 
 ### Pregunta 1
 
-**Pregunta:** ¿Qué genes se sobre expresan en mosquitos resistentes en presencia de insecticidas a comparación a los susceptibles?  
+**Pregunta:** ¿Qué genes se sobreexpresan en mosquitos resistentes en presencia de insecticidas a comparación a los susceptibles?  
 **Evidencia necesaria:** Genes sobreexpresados en las lecturas de los archivos FASTA en los organismos resistentes en presencia de insecticidas en comparación a organismos susceptibles
 
 ### Pregunta 2
@@ -160,7 +160,7 @@ EJEMPLO: NCBI RefSeq, GCF_000005845.2, consultado el dd/mm/aaaa. -->
 
 | Fuente | Identificador o versión | URL | Fecha de consulta | Licencia o condiciones |
 |:--|:--|:--|:--|:--|
-| NCBI Sequence Read Archive (SRA), asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z) | SRP052073 | URL: https://pubmed.ncbi.nlm.nih.gov/22970263/| - Consultado el 01/09/2026 | Mosquitos de campo resistentes a deltametrina (Provincia Occidental de Kenia) - Mosquitos de campo susceptibles a deltametrina (misma región) - Cepa de laboratorio Kisumu (susceptible de referencia, altamente endogámica) |
+| NCBI Sequence Read Archive (SRA), asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z) | PRJNA170440 | URL: https://pubmed.ncbi.nlm.nih.gov/22970263/| - Consultado el 01/09/2026 | Mosquitos de campo resistentes a deltametrina (Provincia Occidental de Kenia) - Mosquitos de campo susceptibles a deltametrina (misma región) - Cepa de laboratorio Kisumu (susceptible de referencia, altamente endogámica) |
 
 ### 8.2 Características de los datos
 
@@ -225,8 +225,8 @@ proyecto/
 |      ├── resistent/
 |      ├── susceptible/
 ├── docs/
+├── logs/
 ├── envs/
-├── notebooks/
 ├── results/
 ├── src/
 └── tests/

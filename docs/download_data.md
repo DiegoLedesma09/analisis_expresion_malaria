@@ -9,7 +9,7 @@ El módulo realiza lo siguiente:
 1. Configura NCBI Entrez con un email y API key. 
 2. Descarga los metadatos del BioProject.
 3. Obtiene los BioSamples y SRA asociados, y guarda sus metadatos.
-4. Descarga las lecturas (FASTQ) de cada SRA y las clasifica por fenotipo (`susceptible` o `resistent`).
+4. Descarga las lecturas (FASTQ) de cada SRA y las clasifica por fenotipo (`susceptible` o `resistant`).
 5. Opcionalmente, descarga el genoma de referencia del organismo.
 6. Opcionalmente, genera un gráfico comparativo de proporción de lecturas
    entre los dos fenotipos.
@@ -18,7 +18,7 @@ El módulo realiza lo siguiente:
 
 ## Requisitos 
 
--  Python 3.14.3
+-  Python 3.12
 - Biopython (`Bio.Entrez`)
 - Matplotlib (para el gráfico de proporción de lecturas)
 - Conexión a internet
@@ -46,6 +46,7 @@ analisis_expresion_malaria/
 
 ## Pipeline 
 
+```mermaid
 flowchart TD
     A([PRJNA...]) --> B[configurate_entrez]
     B --> C[get_bioproject_uid]
@@ -56,9 +57,10 @@ flowchart TD
     E --> F[download_sra_lectures]
     F --> F1[(data/raw/susceptible/sra_runs/)]
     F --> F2[(data/raw/resistent/sra_runs/)]
-    F -.->|"--reference"| G[get_genome_metadata → get_reference_assembly → download_reference_genome]
+    F -.->|--reference| G[get_genome_metadata -> get_reference_assembly -> download_reference_genome]
     G --> G1[(data/genome/genome_*.fasta)]
-    F -.->|"--graphic"| H[plot_reads_proportion] --> H1[(results/reads_proportion.png)]
+    F -.->|--graphic| H[plot_reads_proportion] --> H1[(results/reads_proportion.png)]
+```
 
 ## Componentes clave 
 

@@ -36,8 +36,9 @@ proyecto/
 ├──── curated/       # Datos curados
 ├────── resistent/   # Datos de organismo resistente curados
 ├────── susceptible/ # Datos de organismo susceptible curados
+├─── genome/         # Genoma del organismo
 ├──── raw/           # Datos crudos
-├────── resistent/   # Datos de organismo resistente crudos
+├────── resistant/   # Datos de organismo resistente crudos
 ├────── susceptible/ # Datos de organismo susceptible crudos
 ├── envs/            # Ambiente del proyecto
 ├── docs/            # Reporte y documentación
@@ -97,7 +98,7 @@ Estos datos serán situados en las carpetas correspondientes:
 proyecto/
 ├── data/            # Datos de ejemplo o archivos pequeños
 ├──── raw/           # Datos crudos
-├────── resistent/   # Datos de organismo resistente crudos
+├────── resistant/   # Datos de organismo resistente crudos
 ├────── susceptible/ # Datos de organismo susceptible crudos
 ```
 

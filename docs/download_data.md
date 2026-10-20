@@ -57,7 +57,7 @@ flowchart TD
     E --> F[download_sra_lectures]
     F --> F1[(data/raw/susceptible/sra_runs/)]
     F --> F2[(data/raw/resistant/sra_runs/)]
-    F -.->|--reference| G[get_genome_metadata -> get_reference_assembly -> download_reference_genome]
+    F -.->|--reference| G[ get_bioproject_organism -> get_genome_metadata -> get_reference_assembly -> download_reference_genome]
     G --> G1[(data/genome/genome_*.fasta)]
     F -.->|--graphic| H[plot_reads_proportion] --> H1[(results/reads_proportion.png)]
 ```

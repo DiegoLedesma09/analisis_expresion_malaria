@@ -8,12 +8,12 @@
 | Integrante 2 | Ledesma Gallegos Diego  diegolg@lcg.unam.mx |
 | Integrante 3 | Muñoz Muñoz Luis Angel  luismm@lcg.unam.mx |
 | Fecha de creación | 25/08/2026 |
-| Última actualización | 17/00/2026 |
+| Última actualización | 19/10/2026 |
 | Repositorio | https://github.com/DiegoLedesma09/analisis_expresion_malaria.git |
 
 ## Resumen del proyecto
 
-Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes al insecticida **deltmetrina** frente a los susceptibles, con el objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia a insecticidas. El proyecto no ahondará en el análisis comparativo poblacional de metagenomas.
+Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes al insecticida **deltametrina** frente a los susceptibles, con el objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia a insecticidas. El proyecto no ahondará en el análisis comparativo poblacional de metagenomas.
 
 ## 1. Contexto y antecedentes
 
@@ -26,7 +26,7 @@ EJEMPLO: La resistencia antimicrobiana es un problema de salud pública. Aunque
 existen bases especializadas, comparar varios genomas requiere integrar datos
 procedentes de distintos archivos. -->
 
-La malaria (o paludismo) es una enfermedad causada por un parásito Plasmodium, el cual es trasmitido por la picadura de un mosquito infectado. Sólo el género *Anopheles* del mosquito transmite la malaria. Los síntomas de esta enfermedad pueden incluir fiebre, vómito y/o dolor de cabeza. La forma clásica de manifestación en el organismo es fiebre, sudoración y escalofríos, que aparecen 10 a 15 días después de la picadura del mosquito. Dado a esto es un problema de salud publica en África subsahariana con su morbilidad y mortalidad asociada afecta esta población.
+La malaria (o paludismo) es una enfermedad causada por un parásito *Plasmodium*, el cual es trasmitido por la picadura de un mosquito infectado. Sólo el género *Anopheles* del mosquito transmite la malaria. Los síntomas de esta enfermedad pueden incluir fiebre, vómito y/o dolor de cabeza. La forma clásica de manifestación en el organismo es fiebre, sudoración y escalofríos, que aparecen 10 a 15 días después de la picadura del mosquito. Representa un problema de salud pública en el África subsahariana que, debido a su alta morbilidad y mortalidad asociada, afecta a esta población.
 
 El control de la malaria se basa en el uso de intervenciones basadas en productos químicos en forma de mosquiteros tratados con insecticida de larga duración y pulverización residual en interiores.
 
@@ -45,9 +45,8 @@ problema con la herramienta ni con la solución.
 EJEMPLO: La identificación manual de genes de resistencia en varios genomas es
 lenta, propensa a errores y difícil de reproducir. -->
 
-A pesar de que la resistencia a insecticidas en Anopheles gambiae es un problema crítico para el control de la malaria, los mecanismos moleculares no están completamente caracterizados, en parte porque los mecanismos varían entre poblaciones geográficas 
-
-Ademas de que Anopheles gambiae esta generando nuevos mecanismos para inhibir la acción del insecticida estos generan un mayor conflicto al caracterizar la vía que usan
+A pesar de que la resistencia a insecticidas en *Anopheles gambiae* es un problema crítico para el control de la malaria, los mecanismos moleculares no están completamente caracterizados, en parte porque los mecanismos varían entre poblaciones geográficas. 
+Además de que *Anopheles gambiae* está generando nuevos mecanismos para inhibir la acción del insecticida estos generan un mayor conflicto al caracterizar la vía que usan. 
 
 
 ## 3. Justificación
@@ -57,16 +56,9 @@ relevancia biológica, científica, técnica o social y quién podría beneficia
 EJEMPLO: Un flujo automatizado reducirá errores y permitirá repetir el análisis
 con los mismos datos, parámetros y versiones del software. -->
 
-La malaria es una enfermedad contagiosa en vectores cómunes en zonas del sudeste Africano,
-la prevalencia del vector de transmición ha sido una problemática que produjo la creación
-de insecticidas hacia ellos, pero debido a fuerzas de evolución, dichos organismos han evolucionado,
-de tal manera que son resistentes a insecticidas cómunes. En este trabajo se busca encontrar los 
-genes que promueven esta resistencia.
+La malaria es una enfermedad contagiosa en vectores cómunes en zonas del sudeste Africano, la prevalencia del vector de transmición ha sido una problemática que produjo la creación de insecticidas hacia ellos, pero debido a fuerzas de evolución, dichos organismos han evolucionado, de tal manera que son resistentes a insecticidas cómunes. En este trabajo se busca encontrar los genes que promueven esta resistencia.
 
-El análsis comparativo de datasets transcriptómicos requiere de un tratamiento estricto
-de errores, por lo que, repetir el análisis transcriptómico con un tratamiento de batch
-error podemos obtener posteriormente un perfil descriptivo basado en los genes de alta
-expresividad en el trabajo.
+El análsis comparativo de datasets transcriptómicos requiere de un tratamiento estricto de errores, por lo que, repetir el análisis transcriptómico con un tratamiento de batch error podemos obtener posteriormente un perfil descriptivo basado en los genes de alta expresividad en el trabajo.
 
 ## 4. Objetivo general
 
@@ -75,8 +67,7 @@ ser alcanzable durante el semestre.
 EJEMPLO: Desarrollar un flujo reproducible en Python para identificar y comparar
 genes de resistencia en un conjunto de genomas de E. coli. -->
 
-Tratar datos provenientes de archivos FASTA, identificar datos de expresión transcriptómicos y
-posteriormente identificar los genes que proveen la resistencia a insecticidas.
+Tratar datos provenientes de archivos FASTA, identificar datos de expresión transcriptómicos y posteriormente identificar los genes que proveen la resistencia a insecticidas.
 
 ## 5. Preguntas de investigación
 
@@ -89,12 +80,12 @@ de presencia y ausencia obtenida de las anotaciones. -->
 ### Pregunta 1
 
 **Pregunta:** ¿Qué genes se sobreexpresan en mosquitos resistentes en presencia de insecticidas a comparación a los susceptibles?  
-**Evidencia necesaria:** Genes sobreexpresados en las lecturas de los archivos FASTA en los organismos resistentes en presencia de insecticidas en comparación a organismos susceptibles
+**Evidencia necesaria:** Genes sobreexpresados en las lecturas de los archivos FASTA en los organismos resistentes en presencia de insecticidas en comparación a organismos susceptibles.
 
 ### Pregunta 2
 
-**Pregunta:** Relacionar los genes que encontremos con algún rasgo que les confiera la resistencia
-**Evidencia necesaria:** Relacionar con deSeq2 para identificar los genes según los datos transcriptómicos
+**Pregunta:** Relacionar los genes que encontremos con algún rasgo que les confiera la resistencia.
+**Evidencia necesaria:** Relacionar con deSeq2 para identificar los genes según los datos transcriptómicos.
 
 ## 6. Alcance y limitaciones
 
@@ -106,20 +97,20 @@ utilizarán datos clínicos ni se realizará validación experimental. -->
 ### Incluye
 
 - Incluye un análisis de 2 datasets de datos transcriptómicos de *Anopheles gambiae*, con organismos susceptibles y resistentes obtenidos de campo.
-- Incluye un estudio de datos de expresión de los datos transcriptómicos
-- Incluye un enfoque con genes con el fin de una caracterización
+- Incluye un estudio de datos de expresión de los datos transcriptómicos.
+- Incluye un enfoque con genes con el fin de una caracterización.
 - Los resultados esperados son una lista de genes que promuevan la resistencia a insecticidas.
 
 ### No incluye
 
-- No incluye un análisis comparativo poblacional de metagenomas
-- No incluye la secuenciación de los datos ni la obtención de los organismos
+- No incluye un análisis comparativo poblacional de metagenomas.
+- No incluye la secuenciación de los datos ni la obtención de los organismos.
 
 ### Limitaciones conocidas
 
-- Podriamos encontrar genes que no esten asociados con una función pero tengan una sobreexpresión.
-- Podríamos tener datasets de mala calidad
-- El análisis se realizará en un plazo de 3 meses
+- Podríamos encontrar genes que no estén asociados con una función pero tengan una sobreexpresión.
+- Podríamos tener datasets de mala calidad.
+- El análisis se realizará en un plazo de 3 meses.
 
 ## 7. Propuesta de solución
 
@@ -131,15 +122,15 @@ extraerá genes, almacenará resultados y generará visualizaciones. -->
 
 Un programa modular que hará las siguientes funciones:
 
-- Descarga de los datos
+- Descarga de los datos.
 - Control de calidad de las lecturas crudas.
-- Trimming y limpieza
-- Descarga del genoma de referencia y anotación
-- Alineamiento del genoma 
-- Cuantificación de expresión
-- Control de calidad post-alineamiento
-- Análisis de expresión diferencial
-- Anotación funcional y enriquecimiento
+- Trimming y limpieza.
+- Descarga del genoma de referencia y anotación.
+- Alineamiento del genoma.
+- Cuantificación de expresión.
+- Control de calidad post-alineamiento.
+- Análisis de expresión diferencial.
+- Anotación funcional y enriquecimiento.
 
 ### 7.1 Resultado o producto esperado
 
@@ -170,7 +161,7 @@ EJEMPLO: Archivos FASTA y GFF3 de 20 genomas completos de E. coli. -->
 
 *Organismo y taxonomía*
 
-Anopheles gambiae (forma S)
+*Anopheles gambiae* (forma S).
 
 *Diseño experimental / grupos*
 
@@ -178,16 +169,16 @@ Presentamos los análisis basados ​​en RNA-seq de los cambios transcripciona
 
 *Origen geográfico*
 
-Larvas colectadas en la Provincia Occidental de Kenia: localidades de Bungoma, Busia y Emutete
+Larvas colectadas en la Provincia Occidental de Kenia: localidades de Bungoma, Busia y Emutete.
 Año de colecta: 2012
-Criadas hasta adultez en insectario del KEMRI, Kisumu
+Criadas hasta adultez en insectario del KEMRI, Kisumu. 
 
 *Fenotipado*
 
-WHO tube test estándar con deltametrina (0.05%)
-Resistentes: vivos 24h post-exposición
-Susceptibles: derribados tempranamente (knock-down), sin signos de recuperación
-Genotipado individual adicional de la mutación kdr (L1014S) en el gen para
+WHO tube test estándar con deltametrina (0.05%).
+Resistentes: vivos 24h post-exposición.
+Susceptibles: derribados tempranamente (knock-down), sin signos de recuperación.
+Genotipado individual adicional de la mutación kdr (L1014S) en el gen para.
 
 *Datos moleculares*
 
@@ -219,7 +210,7 @@ EJEMPLO: data/raw conserva originales y data/processed los derivados. -->
 proyecto/
 ├── data/
 │   ├── raw/
-|      ├── resistent/
+|      ├── resistant/
 |      ├── susceptible/
 │   ├── curated/
 |      ├── resistent/
@@ -254,12 +245,12 @@ actualícenla con lo que realmente ejecutaron, incluidos parámetros y decisione
 de resultados. Relacionen cada etapa con una pregunta u objetivo.
 EJEMPLO: descarga, validación, transformación, análisis, visualización y pruebas. -->
 
-1. Descarga de los datos
-2. Control de calidad
-3. Alineamiento del genoma
-4. Cuantificación de expresión
-5. Análisis de expresión diferencial
-6. Anotación funcional
+1. Descarga de los datos.
+2. Control de calidad.
+3. Alineamiento del genoma.
+4. Cuantificación de expresión.
+5. Análisis de expresión diferencial.
+6. Anotación funcional.
 
 ### 9.2 Herramientas y tecnologías
 

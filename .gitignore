@@ -26,4 +26,4 @@ results/generated/
 
 # Temporary files
 *.log
-*.tmp
+*.tmplogs/

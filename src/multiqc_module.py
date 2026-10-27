@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 import multiqc
@@ -18,27 +19,54 @@ FASTQC_FLAG_COLUMNS = [
     "adapter_content",
 ]
 
-def run_multiqc():
+def run_fastqc(threads=4):
     """
-    run_multiqc se encargará de recorrer una lista de los directorios que contengan los archivos .fasta de datos de 
-    expresión del organismo Anopheles gambiae. Así como identificará la calidad de las lecturas y escribirá un dataframe
-    que se guardará en la carpeta .results, en dicho Dataframe se identificará cada lectura y se dará un resumen de la calidad. 
-    
+    run_fastqc corre FastQC sobre los .fastq de cada grupo de expresión del organismo Anopheles gambiae
+    y deja los reportes en results/fastqc/<grupo>.
+
     Args:
-    
+        threads (int) -> Número de hilos que usará FastQC
+
+    Returns:
+        fastqc_dirs (List) -> Lista de rutas de salida de FastQC, una por grupo
+    """
+    fastqc_dirs = []
+
+    for grupo in ["resistent", "susceptible"]:
+        entrada = Path("data/raw") / grupo / "sra_runs"
+        salida = Path("results/fastqc") / grupo
+        salida.mkdir(parents=True, exist_ok=True)
+
+        fastqs = sorted(entrada.glob("*.fastq*"))
+        if not fastqs:
+            raise FileNotFoundError(f"No hay .fastq en {entrada}")
+
+        subprocess.run(
+            ["fastqc", "-t", str(threads), "-o", str(salida), *map(str, fastqs)],
+            check=True,
+        )
+        fastqc_dirs.append(salida)
+
+    return fastqc_dirs
+
+def run_multiqc(fastqc_dirs):
+    """
+    run_multiqc se encargará de recorrer los directorios con los reportes de FastQC de cada grupo
+    (resistente y susceptible) y generará un reporte de MultiQC por grupo, que se guardará en la
+    carpeta results/qc.
+
+    Args:
+        fastqc_dirs (List) -> Lista de rutas de salida generadas por run_fastqc, una por grupo
+
     Returns:
          output_dirs (List) -> Lista de rutas de salida generadas por MultiQC, una por grupo
-    
-    """
-    dirs_fasta = []
-    dirs_fasta.append(Path("../data/raw/resistent"))
-    dirs_fasta.append(Path("../data/raw/susceptible"))
 
+    """
     output_dirs = []
 
-    for i in dirs_fasta:
-        output_dir = f"../results/qc/{i.name}"
-        multiqc.run(i, cfg=ClConfig(output_dir=output_dir), return_html=True)
+    for i in fastqc_dirs:
+        output_dir = f"results/qc/{i.name}"
+        multiqc.run(str(i), cfg=ClConfig(output_dir=output_dir), return_html=True)
         output_dirs.append(output_dir)
 
     return output_dirs
@@ -111,3 +139,18 @@ def delete_fails(dict_qc):
     }
 
     return dict_qc_filtered
+
+def main():
+    fastqc_dirs = run_fastqc()
+    output_dirs = run_multiqc(fastqc_dirs)
+    df_qc = read_tsv(output_dirs)
+    dict_qc = classify_sample(df_qc)
+    dict_qc_filtered = delete_fails(dict_qc)
+
+    print(f"Muestras totales: {len(dict_qc)}")
+    print(f"Muestras que pasan el filtro: {len(dict_qc_filtered)}")
+
+    return dict_qc_filtered
+
+if __name__ == "__main__":
+    main()

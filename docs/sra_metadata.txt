@@ -1,0 +1,13 @@
+======Metadatos de SRA asociados al BioProject: PRJNA170440======
+
+--- SRA ID: 200789 ---
+Experiment Accession (SRX) 	 N/A
+Id 	 200789
+Title 	 N/A
+Run Accession (SRR) 	 SRR520428
+
+--- SRA ID: 200788 ---
+Experiment Accession (SRX) 	 N/A
+Id 	 200788
+Title 	 N/A
+Run Accession (SRR) 	 SRR520427

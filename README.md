@@ -1,6 +1,6 @@
-# Expresión diferencial entre organismos de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
+# Expresión diferencial entre organismos de *Anopheles gambiae*, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
 
-Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a insecticidas frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
+Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a deltametrina frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
 
 Para conocer el planteamiento, las preguntas de investigación, la metodología y
 los resultados, consulta el [reporte de proyecto](docs/reporte-proyecto.md).
@@ -36,13 +36,15 @@ proyecto/
 ├──── curated/       # Datos curados
 ├────── resistent/   # Datos de organismo resistente curados
 ├────── susceptible/ # Datos de organismo susceptible curados
+├─── genome/         # Genoma del organismo
 ├──── raw/           # Datos crudos
-├────── resistent/   # Datos de organismo resistente crudos
+├────── resistant/   # Datos de organismo resistente crudos
 ├────── susceptible/ # Datos de organismo susceptible crudos
 ├── envs/            # Ambiente del proyecto
 ├── docs/            # Reporte y documentación
 ├── results/         # Tablas y figuras generadas
 ├── src/             # Código fuente
+├── logs/            # Archivos logs de los módulos
 ├── tests/           # Pruebas
 ├── CITATION.cff     # Información para citar el software
 ├── LICENSE          # Licencia
@@ -52,7 +54,7 @@ proyecto/
 
 ## Requisitos
 
-- Python 3.14.3
+- Python 3.12
 - Git
 - Conexión a internet para la descarga de datos
 
@@ -96,28 +98,35 @@ Estos datos serán situados en las carpetas correspondientes:
 proyecto/
 ├── data/            # Datos de ejemplo o archivos pequeños
 ├──── raw/           # Datos crudos
-├────── resistent/   # Datos de organismo resistente crudos
+├────── resistant/   # Datos de organismo resistente crudos
 ├────── susceptible/ # Datos de organismo susceptible crudos
 ```
 
 Uso sugerido en la terminal:
 
-    python src/download_data.py
+    python src/download_data.py -p PJRNA170440 -e correo@ejemplo.com -a api_key -v
 
 Los archivos se guardarán en data/raw/. Los identificadores, versiones y criterios de selección se documentan en docs/reporte-proyecto.md.
 
 La procedencia y características detalladas se describen en el
 [reporte del proyecto](docs/reporte-proyecto.md).
 
-## Uso #PENDIENTE
-
-[Expliquen qué hace el siguiente comando y qué entradas necesita.]
+## Uso
 
 ```bash
-python src/main.py [argumentos]
+python src/download_data.py -p PJRNA170440 -e correo@ejemplo.com -a api_key -v
 ```
 
-[Indiquen dónde se guardan los resultados.]
+Este primer comando indica la descarga de los datos mediante el módulo ***download_data.py***.
+
+Los argumentos sugeridos son los siguientes:
+    -p -> Identificador del BioProject.
+    -e -> Correo electrónico del usuario para su ingreso a NCBI.
+    -a -> Api-Key para una navegación más rápida dentro de NCBI.
+    -v -> Archivo logs
+
+Los resultados se guardan en sus carpetas respectivas, es decir, los metadatos se guardan en *docs/*,
+los datos descargados se guardan en *data/* y las figuras generadas se guardan en *results/*
 
 <!--
 AYUDA:
@@ -133,14 +142,16 @@ Para analizar los identificadores incluidos en data/accessions.txt:
 El comando generará results/gene_matrix.csv y results/heatmap.png.
 -->
 
-## Reproducción de resultados # PENDIENTE
+## Reproducción de resultados
 
 Ejecuten los siguientes pasos en el orden indicado:
 
 ```bash
-python scripts/download_data.py
-python src/run_analysis.py
-python src/create_figures.py
+python src/download_data.py -p PJRNA170440 -e correo@ejemplo.com -a api_key -v
+python src/multiqc_module.py
+python src/trimming_module.py
+
+# PENDIENTE
 ```
 
 Los resultados esperados se generarán en `results/`.

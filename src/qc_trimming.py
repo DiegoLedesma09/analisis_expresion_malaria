@@ -94,20 +94,21 @@ OVERALL_FLAGS = [
 FASTQ_SUFFIX_FWD = "_1.fastq"
 FASTQ_SUFFIX_REV = "_2.fastq"
 
-FASTQ_SUFFIX_FWD = "_1.fastq"
-FASTQ_SUFFIX_REV = "_2.fastq"
+# Constantes para el FASTQC
+GRUPOS = ["resistant", "susceptible"]
+CURATED_DIR = "data/curated"
 
 # Parámetros de Trim Galore
 TRIM_QUALITY = 20      # Calidad Phred mínima para recortar el extremo 3
 TRIM_MIN_LENGTH = 36   # Longitud mínima de lectura tras el recorte
 
-def run_fastqc(w:int= 4, outdir:str = "results/", stage:str = "raw") -> list: 
+def run_fastqc(w:int= 4, outdir:str = "results", stage:str = "raw") -> list: 
     """
     run_fastqc corre FastQC sobre los .fastq de cada grupo de expresión del organismo Anopheles gambiae
     y deja los reportes en <outdir>/fastqc/<stage>/<grupo>.
 
     Args:
-        w (int) -> Número de hilos que usará FastQC (por defecto 8)
+        w (int) -> Número de hilos que usará FastQC (por defecto 4)
         outdir (str) -> Ruta del directorio de salida (por defecto results/)
         stage (str) -> "raw" para las lecturas crudas (data/raw/<grupo>/sra_runs) o "trimmed" para las
                        lecturas recortadas por Trim Galore (<outdir>/trimmed/<grupo>, archivos *_val_*.fq)
@@ -117,12 +118,12 @@ def run_fastqc(w:int= 4, outdir:str = "results/", stage:str = "raw") -> list:
     """
     fastqc_dirs = []
 
-    for grupo in ["resistant", "susceptible"]:
+    for grupo in GRUPOS:
         if stage == "raw":
             entrada = Path("data/raw") / grupo / "sra_runs"
             fastqs = sorted(entrada.glob("*.fastq*"))
         else:
-            entrada = Path(outdir) / "trimmed" / grupo
+            entrada = Path(CURATED_DIR) / grupo
             fastqs = sorted(entrada.glob("*_val_*.fq"))
 
         salida = Path(f"{outdir}/fastqc") / stage / grupo
@@ -171,9 +172,10 @@ def run_multiqc(fastqc_dirs:list, outdir:str = "results/", stage:str = "raw") ->
         output_dir = f"{outdir}/qc/{stage}/{i.name}"
         Path(output_dir).mkdir(parents=True, exist_ok=True)
         logger.info("[%s] MultiQC sobre %s", stage, i)
-        
+
         try:
-            multiqc.run(str(i), cfg=ClConfig(output_dir=output_dir), return_html=True)
+            Path(output_dir).mkdir(parents=True, exist_ok=True)
+            multiqc.run(str(i), cfg=ClConfig(output_dir=output_dir, force=True))
         except Exception:
             logger.exception("[%s] MultiQC falló en %s", stage, i)
             raise
@@ -241,7 +243,8 @@ def classify_sample(df_qc:pd.DataFrame) -> dict:
         try:
             sample = row["Sample"]
 
-            banderas = {col: row[col] for col in FASTQC_FLAG_COLUMNS}
+            banderas = {col: row.get(col, "na") for col in FASTQC_FLAG_COLUMNS}
+            banderas = {c: ("na" if pd.isna(v) else v) for c, v in banderas.items()}
         except KeyError as e:
             logger.warning("Fila %s sin la columna %s, se omite la muestra", i, e)
             continue
@@ -327,7 +330,7 @@ def pair_samples(dict_qc_filtered:dict) -> dict:
     return pares
 
 
-def run_trim_galore(pares:dict, raw_dir:str = "data/raw", output_dir:str = "results/trimmed", w:int = 4) -> dict:
+def run_trim_galore(pares:dict, raw_dir:str = "data/raw", output_dir:str = CURATED_DIR, w:int = 4) -> dict:
     """
     run_trim_galore se encarga de correr Trim Galore (modo --paired) sobre cada par de lecturas, usando el
     campo "grupo" para localizar los fastq crudos. Trim Galore detecta el adaptador automáticamente y recorta
@@ -338,7 +341,7 @@ def run_trim_galore(pares:dict, raw_dir:str = "data/raw", output_dir:str = "resu
         pares (dict) -> Diccionario creado por pair_samples(), {SRR: {"grupo": grupo}}
         raw_dir (str) -> Ruta al directorio donde están los fastq crudos, organizados por grupo/sra_runs (por defecto data/raw)
         output_dir (str) -> Ruta al directorio donde Trim Galore escribirá las lecturas ya limpias (por defecto results/trimmed)
-        w (int) -> Número de cores que usará Trim Galore (por defecto 8)
+        w (int) -> Número de cores que usará Trim Galore (por defecto 4)
 
     Returns:
         output_paths (dict) -> Diccionario que asocia cada SRR con la carpeta de salida de su trimming
@@ -527,7 +530,7 @@ def main():
         pares = pair_samples(dict_qc)
         logger.info("Pares completos a recortar: %d", len(pares))
 
-        run_trim_galore(pares, output_dir=f"{args.outdir}/trimmed", w=args.workers)
+        run_trim_galore(pares, output_dir=CURATED_DIR, w=args.workers)
 
         fastqc_dirs_trim = run_fastqc(w=args.workers, outdir=args.outdir, stage="trimmed")
         output_dirs_trim = run_multiqc(fastqc_dirs_trim, outdir=args.outdir, stage="trimmed")

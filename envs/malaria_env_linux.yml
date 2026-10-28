@@ -6,7 +6,7 @@ dependencies:
   - sra-tools
   - biopython
   - multiqc
-  - trimmomatic
+  - trim-galore
   - fastqc
   - matplotlib
   - python=3.12

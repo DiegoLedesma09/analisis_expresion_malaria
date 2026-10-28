@@ -59,6 +59,7 @@ Nota:
 import argparse as ap
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -383,6 +384,8 @@ def run_trim_galore(pares:dict, raw_dir:str = "data/raw", output_dir:str = CURAT
             fallidos.append(srr)
             continue
 
+        for f in sample_output_dir.glob(f"{srr}*_trimming_report.*"):
+            f.unlink()
         output_paths[srr] = str(sample_output_dir)
 
     if fallidos:
@@ -395,6 +398,17 @@ def run_trim_galore(pares:dict, raw_dir:str = "data/raw", output_dir:str = CURAT
     logger.info("Trimming completado en %d de %d SRR", len(output_paths), len(pares))
 
     return output_paths
+
+def remove_qc_dir(outdir: str = "results") -> None:
+    """
+    remove_qc_dir elimina <outdir>/qc/ (reportes y datos de MultiQC) una vez que ya se leyeron.
+
+    Args:
+        outdir (str) -> Ruta al directorio de salida (por defecto results)
+    """
+    qc_dir = Path(outdir) / "qc"
+    shutil.rmtree(qc_dir, ignore_errors=True)
+    logger.info("Eliminado %s", qc_dir)
 
 def my_parser() -> ap.Namespace:
     """
@@ -484,6 +498,7 @@ def main():
 
         dict_qc_filtered = delete_fails(dict_qc_trim)
         pares_finales = pair_samples(dict_qc_filtered)
+        remove_qc_dir(args.outdir)
 
         logger.info("Muestras recortadas totales: %d", len(dict_qc_trim))
         logger.info("Muestras recortadas que pasan el filtro: %d", len(dict_qc_filtered))

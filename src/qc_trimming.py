@@ -136,7 +136,7 @@ def run_fastqc(w:int= 4, outdir:str = "results/", stage:str = "raw") -> list:
 
         try:
             subprocess.run(
-                ["fastqc", "-t", str(w), "-o", str(salida), *map(str, fastqs)],
+                ["fastqc", "-t", str(w), "--outdir", str(salida), *map(str, fastqs)],
                 check=True,
             )
         except FileNotFoundError:
@@ -459,7 +459,7 @@ def my_parser() -> ap.Namespace:
     parser = ap.ArgumentParser(
     description="Pipeline para la limpieza de las lecturas mediante el uso de FastQC, MultiQC y Trim Galore")
     parser.add_argument("-w", "--workers", default=4, type=int, help="No. de workers para trabajar")
-    parser.add_argument("-o", "--outdir", default="results", help="Ruta al directorio de salida")
+    parser.add_argument("-o", "--outdir", default="results/", help="Ruta al directorio de salida")
     parser.add_argument("-v", "--verbose", action="store_true", help="Muestra mensajes DEBUG")
     parser.add_argument("--log_file", default="logs/qc_trimming.log", help="Archivo de log")
     parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,

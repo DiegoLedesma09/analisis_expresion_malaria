@@ -23,7 +23,7 @@ data/curated/
 data/genome/
 
 # Generated results
-results/qc/
+results/fastqc/
 
 # Temporary files
 *.log

@@ -117,7 +117,7 @@ def run_fastqc(w:int= 4, outdir:str = "results/", stage:str = "raw") -> list:
     """
     fastqc_dirs = []
 
-    for grupo in ["resistent", "susceptible"]:
+    for grupo in ["resistant", "susceptible"]:
         if stage == "raw":
             entrada = Path("data/raw") / grupo / "sra_runs"
             fastqs = sorted(entrada.glob("*.fastq*"))

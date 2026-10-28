@@ -19,10 +19,11 @@ Thumbs.db
 
 # Raw and processed data
 data/raw/
-data/processed/
+data/curated/
+data/genome/
 
 # Generated results
-results/generated/
+results/qc/
 
 # Temporary files
 *.log

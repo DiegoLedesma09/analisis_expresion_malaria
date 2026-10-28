@@ -63,7 +63,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import multiqc
 import pandas as pd
 from multiqc.core.update_config import ClConfig
@@ -88,7 +87,6 @@ FASTQC_FLAG_COLUMNS = [
 OVERALL_FLAGS = [
     "adapter_content",
     "per_base_n_content",
-    "per_base_sequence_content",
 ]
 
 FASTQ_SUFFIX_FWD = "_1.fastq"
@@ -398,58 +396,6 @@ def run_trim_galore(pares:dict, raw_dir:str = "data/raw", output_dir:str = CURAT
 
     return output_paths
 
-def plot_qc_comparison(dict_qc_raw: dict, dict_qc_trim: dict, outdir: str = "results/") -> Path:
-    """
-    plot_qc_comparison grafica, por grupo (resistente y susceptible), cuántas muestras pasan el filtro
-    (overall distinto de "fail") antes y después del trimming, para evaluar el efecto de Trimmomatic.
-
-    Args:
-        dict_qc_raw (dict) -> Diccionario de classify_sample() sobre las lecturas crudas
-        dict_qc_trim (dict) -> Diccionario de classify_sample() sobre las lecturas recortadas
-        outdir (str) -> Ruta al directorio de salida (por defecto results/)
-
-    Returns:
-        output_path (Path) -> Ruta de la gráfica generada
-    """
-    grupos = sorted({b["grupo"] for b in (*dict_qc_raw.values(), *dict_qc_trim.values())})
-
-    def contar(dict_qc: dict, grupo: str) -> tuple:
-        total = sum(1 for b in dict_qc.values() if b["grupo"] == grupo)
-        pasan = sum(1 for b in dict_qc.values() if b["grupo"] == grupo and b["overall"] != "fail")
-        return pasan, total
-
-    conteos_raw = [contar(dict_qc_raw, g) for g in grupos]
-    conteos_trim = [contar(dict_qc_trim, g) for g in grupos]
-
-    ancho = 0.35
-    posiciones = range(len(grupos))
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-    for offset, conteos, etiqueta in [
-        (-ancho / 2, conteos_raw, "Antes del trimming"),
-        (ancho / 2, conteos_trim, "Después del trimming"),
-    ]:
-        barras = ax.bar([p + offset for p in posiciones], [c[0] for c in conteos], ancho, label=etiqueta)
-        for barra, (pasan, total) in zip(barras, conteos):
-            ax.text(barra.get_x() + barra.get_width() / 2, barra.get_height(),
-                    f"{pasan}/{total}", ha="center", va="bottom", fontsize=9)
-
-    ax.set_xticks(list(posiciones))
-    ax.set_xticklabels(grupos)
-    ax.set_ylabel("Muestras que pasan el filtro")
-    ax.set_title("Muestras que pasan el filtro de calidad antes y después del trimming")
-    ax.legend()
-
-    output_path = Path(outdir) / "images" / "qc_comparison.png"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=150)
-    plt.close(fig)
-
-    logger.info("Gráfica de comparación guardada en %s", output_path)
-
-    return output_path
-
 def my_parser() -> ap.Namespace:
     """
     Retiene los argumentos deseados para el módulo desde línea de comandos.
@@ -466,8 +412,7 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("-o", "--outdir", default="results/", help="Ruta al directorio de salida")
     parser.add_argument("-v", "--verbose", action="store_true", help="Muestra mensajes DEBUG")
     parser.add_argument("--log_file", default="logs/qc_trimming.log", help="Archivo de log")
-    parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,
-                        help="Incluye el grafico comparativo del uso de trimming (usa --no-graphic para omitirlo)")
+
     return parser.parse_args()
 
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
@@ -532,13 +477,10 @@ def main():
 
         run_trim_galore(pares, output_dir=CURATED_DIR, w=args.workers)
 
-        fastqc_dirs_trim = run_fastqc(w=args.workers, outdir=args.outdir, stage="trimmed")
-        output_dirs_trim = run_multiqc(fastqc_dirs_trim, outdir=args.outdir, stage="trimmed")
+        fastqc_dirs_trim = run_fastqc(w=args.workers, outdir=args.outdir, stage="curated")
+        output_dirs_trim = run_multiqc(fastqc_dirs_trim, outdir=args.outdir, stage="curated")
         df_qc_trim = read_tsv(output_dirs_trim)
         dict_qc_trim = classify_sample(df_qc_trim)
-
-        if args.graphic:
-            plot_qc_comparison(dict_qc, dict_qc_trim, outdir=args.outdir)
 
         dict_qc_filtered = delete_fails(dict_qc_trim)
         pares_finales = pair_samples(dict_qc_filtered)

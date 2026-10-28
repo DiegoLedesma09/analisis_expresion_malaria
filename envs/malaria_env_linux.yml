@@ -7,6 +7,7 @@ dependencies:
   - biopython
   - multiqc
   - trim-galore
+  - pandas
   - fastqc
   - matplotlib
   - python=3.12

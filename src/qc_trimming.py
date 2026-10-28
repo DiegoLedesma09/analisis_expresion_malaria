@@ -169,8 +169,9 @@ def run_multiqc(fastqc_dirs:list, outdir:str = "results/", stage:str = "raw") ->
 
     for i in fastqc_dirs:
         output_dir = f"{outdir}/qc/{stage}/{i.name}"
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
         logger.info("[%s] MultiQC sobre %s", stage, i)
-
+        
         try:
             multiqc.run(str(i), cfg=ClConfig(output_dir=output_dir), return_html=True)
         except Exception:

@@ -38,10 +38,10 @@ Funciones principales:
     main                        Ejecuta el flujo completo.
 
 Archivos generados (rutas relativas al directorio donde se ejecuta):
-    docs/bioproject_metadata
-    docs/biosample_metadata
-    docs/sra_metadata
-    docs/genome_metadata
+    docs/metadata/bioproject_metadata
+    docs/metadata/biosample_metadata
+    docs/metadata/sra_metadata
+    docs/metadata/genome_metadata
     data/raw/susceptible/sra_runs/     Lecturas de la cepa susceptible
     data/raw/resistent/sra_runs/       Lecturas de la cepa resistente
     results/reads_proportion
@@ -50,7 +50,7 @@ Argumentos:
     -p,  --project      BioProject ID (obligatorio).
     -e,  --email        Email para NCBI Entrez (obligatorio).
     -a,  --api_key      API key de NCBI para agilizar las consultas.
-    -om, --outdirm      Directorio de salida de los metadatos (default: docs/).
+    -om, --outdirm      Directorio de salida de los metadatos (default: docs/metadata).
     -od, --outdird      Directorio de salida de los datos (default: data/).
     --thr_fq            Workers para fasterq-dump (default: 8).
     -r,  --reference    Incluye el genoma de referencia (default).
@@ -132,13 +132,13 @@ def get_bioproject_uid(bioproject_id: str) -> str:
     except (URLError, RuntimeError) as e:
         raise ConnectionError(f"No se pudo consultar NCBI para {bioproject_id}: {e}") from e
 
-def get_bioproject_metadata(bioproject_id: str, outdir = "docs") -> None:
+def get_bioproject_metadata(bioproject_id: str, outdir = "docs/metadata") -> None:
     """
     Obtiene la información y los metadatos más importantes de un BioProject
-        y los guarda en docs/bioproject_metadata
+        y los guarda en docs/metadata/bioproject_metadata
     Args:
         bioproject_id (str): El identificador del BioProject (ej. 'PRJNAxxxxxx')
-        outdir (str): Carpeta de destino (por defecto 'docs/')
+        outdir (str): Carpeta de destino (por defecto 'docs/metadata/')
     
     Returns:
         None
@@ -216,15 +216,15 @@ def get_biosamples_and_sra(bioproject_id: str) -> tuple[list[str], list[str]]:
 
     return biosample_ids, sra_ids
 
-def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir: str = "docs") -> None:
+def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir: str = "docs/metadata") -> None:
     """
     Obtiene los metadatos de una lista de BioSamples y los guarda en 
-    docs/biosample_metadata extrayendo únicamente los campos de interés.
+    docs/metadata/biosample_metadata extrayendo únicamente los campos de interés.
 
     Args:
         biosample_ids (list[str]) -> Lista con los ids de los biosamples asociados al bioproject
         bioproject_id (str) -> Identificador del Bioproject
-        outdir (str) -> Directorio de salida (por defecto '/docs')
+        outdir (str) -> Directorio de salida (por defecto '/docs/metadata/')
 
     Returns:
         None
@@ -259,15 +259,15 @@ def save_biosample_metadata(biosample_ids: list[str], bioproject_id: str, outdir
 
     logger.info("... guardados en: %s", output_path)
 
-def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "docs") -> None:
+def save_sra_metadata(sra_ids: list[str], bioproject_id: str, outdir: str = "docs/metadata") -> None:
     """
     Obtiene los metadatos de una lista de SRA y los guarda en 
-    docs/sra_metadata extrayendo únicamente los campos de interés.
+    docs/metadata/sra_metadata extrayendo únicamente los campos de interés.
 
     Args:
         sra_ids (list[str]) -> Lista con los ids de los sra asociados al bioproject
         bioproject_id (str) -> Identificador del Bioproject
-        outdir (str) -> Directorio de salida (por defecto '/docs')
+        outdir (str) -> Directorio de salida (por defecto '/docs/metadata')
 
     Returns:
         None
@@ -409,15 +409,15 @@ def get_bioproject_organism(bioproject_id:str) -> str:
     except (URLError, RuntimeError) as e:
         raise ConnectionError(f"No se pudo consultar NCBI para {bioproject_id}: {e}") from e
 
-def get_genome_metadata(bioproject_id:str, outdir:str="docs/"):
+def get_genome_metadata(bioproject_id:str, outdir:str="docs/metadata"):
         """
         Decarga los metadatos del genoma de referencia asociado al 
         organismo del Bioproject desde la base de datos 'assembly' de 
-        NCBI y los guarda en el archivo docs/genome_metadata.
+        NCBI y los guarda en el archivo docs/metadata/genome_metadata.
 
         Args:
             bioproject_id (str) -> Identificador del BioProject. 
-            outdir (str) -> Directorio de salida (por defecto '/docs').
+            outdir (str) -> Directorio de salida (por defecto '/docs/metadata').
         """
         # Asegurar que la carpeta del destino exista
         os.makedirs(outdir, exist_ok=True)
@@ -656,7 +656,7 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("-p", "--project", required=True, help="BioProject ID (e.g., PRJNA877658)")
     parser.add_argument("-e", "--email", required=True, help="Email para NCBI Entrez")
     parser.add_argument("-a", "--api_key", required=False, help="API key para NCBI Entrez")
-    parser.add_argument("-om", "--outdirm", required=False, default="docs/", help="Directorio de salida para metadatos")
+    parser.add_argument("-om", "--outdirm", required=False, default="docs/metadata", help="Directorio de salida para metadatos")
     parser.add_argument("-od", "--outdird", required=False, default="data/", help="Directorio de salida para datos")
     parser.add_argument("--thr_fq", required=False, type=int, default=8, help="Workers para faster-dump")
     parser.add_argument("-r", "--reference", action=ap.BooleanOptionalAction, default=True, 

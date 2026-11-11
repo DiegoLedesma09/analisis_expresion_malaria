@@ -28,7 +28,7 @@ El módulo realiza lo siguiente:
 ## Estructura de archivos generados 
 
 analisis_expresion_malaria/
-├── docs/
+├── docs/metadata/
 │ ├── bioproject_metadata.txt
 │ ├── biosample_metadata.txt
 │ ├── sra_metadata.txt
@@ -75,7 +75,7 @@ Es la base de todas las consultas posteriores.
 
 ### BioProject
 
-`get_bioproject_metadata(bioproject_id, outdir="docs")` — obtiene el resumen del BioProject (`esummary`) y lo guarda en `docs/bioproject_metadata.txt`.
+`get_bioproject_metadata(bioproject_id, outdir="docs")` — obtiene el resumen del BioProject (`esummary`) y lo guarda en `docs/metadata/bioproject_metadata.txt`.
 
 ### BioSamples y SRA
 
@@ -85,11 +85,11 @@ ambas listas y registra los conteos en el log.
 
 `save_biosample_metadata(biosample_ids, bioproject_id, outdir="docs")` —
 guarda `Accession`, `Id`, `Title`, `Organism` y `ProjectAccession` de cada
-BioSample en `docs/biosample_metadata.txt`.
+BioSample en `docs/metadata/biosample_metadata.txt`.
 
 `save_sra_metadata(sra_ids, bioproject_id, outdir="docs")` — guarda
 `ExtId` (SRX), `Id`, `Title` y el accession del Run (SRR) extraído del XML
-`Runs` de cada SRA en `docs/sra_metadata.txt`.
+`Runs` de cada SRA en `docs/metadata/sra_metadata.txt`.
 
 ### Lecturas
 
@@ -111,7 +111,7 @@ fenotipo distinto, se crea `data/raw/<fenotipo>/sra_runs/`.
 como diccionario (`DocumentSummary`).
 
 `get_genome_metadata(bioproject_id, outdir="docs/")` — guarda en
-`docs/genome_metadata.txt` los campos:
+`docs/metadata/genome_metadata.txt` los campos:
 
 - `AssemblyAccession`
 - `AssemblyName`

@@ -10,3 +10,5 @@ dependencies:
   - fastqc
   - matplotlib
   - python=3.12
+  - hisat2=2.2.3
+  - samtools

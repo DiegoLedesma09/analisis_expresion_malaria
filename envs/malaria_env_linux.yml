@@ -10,3 +10,4 @@ dependencies:
   - fastqc
   - matplotlib
   - python=3.12
+  - inmoose

@@ -11,7 +11,8 @@ El módulo realiza lo siguiente:
 3. Obtiene los BioSamples y SRA asociados, y guarda sus metadatos.
 4. Descarga las lecturas (FASTQ) de cada SRA y las clasifica por fenotipo (`susceptible` o `resistant`).
 5. Opcionalmente, descarga el genoma de referencia del organismo.
-6. Opcionalmente, genera un gráfico comparativo de proporción de lecturas
+6. Descarga opcionalmente el formato GTF para el posterior alineamiento
+7. Opcionalmente, genera un gráfico comparativo de proporción de lecturas
    entre los dos fenotipos.
 
 **Todas las acciones se registran con marcas de tiempo en un archivo de log.**
@@ -38,7 +39,8 @@ analisis_expresion_malaria/
 │ │ ├── susceptible/sra_runs/ # FASTQ de la cepa susceptible
 │ │ └── resistant/sra_runs/ # FASTQ de la cepa resistente
 │ └── genome/
-│ └── genome_{organismo}.fasta
+│   ├── genome_{organismo}.fasta
+|   └── genome_{organismo}.gft
 ├── results/
 │ └── reads_proportion.png
 └── logs/
@@ -60,6 +62,7 @@ flowchart TD
     F -.->|--reference| G[ get_bioproject_organism -> get_genome_metadata -> get_reference_assembly -> download_reference_genome]
     G --> G1[(data/genome/genome_*.fasta)]
     G --> G2[(genome_metadata.txt)]
+    F --> I[download_genome_GTF] --> I1[(data/genome/genome_*.gtf)]
     F -.->|--graphic| H[plot_reads_proportion] --> H1[(results/reads_proportion.png)]
 ```
 
@@ -126,6 +129,7 @@ como diccionario (`DocumentSummary`).
 archivo `*_genomic.fna.gz`, lo descarga, lo descomprime y lo guarda como
 `data/genome/genome_{organismo}.fasta`. Si el archivo ya existe, omite la
 descarga.
+`download_genome_GTF(bioproject_id, outdir="data/")` — utiliza los metadatos del ensamblaje para construir la URL del archivo de anotación `*_genomic.gtf.gz.` Lo descarga, lo descomprime y lo guarda en `data/genome/genome_{organismo}.gtf` para su uso en pasos posteriores del pipeline. Si el archivo ya existe, omite la descarga
 
 ### Análisis rápido
 
@@ -150,16 +154,17 @@ Soporta `.fastq` y `.fastq.gz`.
 | `-od`, `--outdird` | No | `data/` | Directorio de datos |
 | `--thr_fq` | No | `8` | Workers para `fasterq-dump` |
 | `-r`, `--reference` / `--no-reference` | No | `True` | Descargar genoma |
+| `-gtf`, `--annotation` /`--no-annotation` | No | `True` | Descargar anotacion GTF |
 | `-g`, `--graphic` / `--no-graphic` | No | `True` | Generar gráfico |
 | `-v`, `--verbose` | No | `False` | Mensajes DEBUG |
 | `--log_file` | No | `logs/download_data.log` | Ruta del log |
 
 ### Ejemplos
 
-1. Ejecución mínima (metadatos + lecturas, sin genoma ni gráfico):
+1. Ejecución mínima (metadatos + lecturas, sin genoma, sin GTF ni gráfico):
 
 ```bash
-python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com \ --no-reference --no-graphic
+python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com \ --no-reference --no-annotation--no-graphic
 ```
 
 2. Ejecución completa 

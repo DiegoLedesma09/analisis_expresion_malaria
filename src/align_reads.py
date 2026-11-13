@@ -11,7 +11,8 @@ Requisitos:
 
 Funciones principales:
     build_index             Construye el índice de HISAT2 (omite si ya existe).
-    convert_sam_to_bam      Convierte formato SAM a BAM ordenado e indexado.
+    convert_sam_to_bam      Convierte formato SAM a BAM ordenado e indexado (.bai), 
+                            realizando la limpieza del archivo SAM temporal.
     setup_logging           Configura el logging del módulo.
     my_parser               Define los argumentos de línea de comandos.
     main                    Ejecuta el flujo completo.
@@ -19,6 +20,7 @@ Funciones principales:
 Argumentos:
     -r, --reference         Ruta al genoma de referencia (FASTA).
     -i, --index             Ruta base y prefijo para el índice HISAT2.
+    -gtf, --annotation      Ruta al archivo de anotación GTF (opcional).
     -d, --data_dir          Directorio de entrada con las lecturas curadas.
     -o, --outdir            Directorio de salida para los BAM.
     -w, --workers           Hilos de procesamiento (default: 8).
@@ -95,7 +97,47 @@ def build_index(fasta_path: str, index_prefix: str, threads: int = 6, gtf_path: 
     except subprocess.CalledProcessError as e:
         logger.error("Error al construir el índice con hisat2-build: %s", e.stderr)
         raise RuntimeError(f"Fallo en hisat2-build: {e.stderr}") from e
+
+def convert_sam_to_bam(sam_path: str, bam_path: str, threads: int = 6) -> None:
+    """
+    Convierte un archivo SAM a un archivo BAM ordenado por coordenadas e 
+    inmediatamente genera su índice (.bai) usando samtools.
+
+    Args:
+        sam_path (str): Ruta del archivo SAM de entrada.
+        bam_path (str): Ruta del archivo BAM de salida.
+        threads (int): Número de hilos para el ordenamiento.
+
+    Returns:
+        None
+    """
+    if not os.path.exists(sam_path):
+        logger.warning("No se encontró el archivo SAM para convertir: %s", sam_path)
+        raise FileNotFoundError(f"Archivo SAM faltante: {sam_path}")
+
+    os.makedirs(os.path.dirname(bam_path), exist_ok=True)
+    logger.info("Convirtiendo SAM a BAM ordenado: %s", bam_path)
+
+    # Comando para ordenar directamente desde SAM a BAM
+    cmd_sort = ["samtools", "sort", "-@", str(threads), "-o", bam_path, sam_path]
+    # Comando para indexar el BAM
+    cmd_index = ["samtools", "index", "-@", str(threads), bam_path]
     
+    try:
+        subprocess.run(cmd_sort, check=True, stderr=subprocess.PIPE, text=True)
+        logger.info("BAM ordenado generado con éxito.")
+        
+        logger.info("Generando índice para %s (.bai)", bam_path)
+        subprocess.run(cmd_index, check=True, stderr=subprocess.PIPE, text=True)
+        logger.info("Índice .bai generado con éxito.")
+
+        # Limpieza: Borra el SAM original para evitar una saturación de espacio en donde se ejecuta el pipeline
+        logger.info("Eliminando archivo SAM temporal: %s", sam_path)
+        os.remove(sam_path)
+
+    except subprocess.CalledProcessError as e:
+        logger.error("Error en la ejecución de samtools: %s", e.stderr)
+        raise RuntimeError(f"samtools falló durante la conversión: {e.stderr}") from e
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     """
     Configura el logging del módulo: consola (stdout) y, opcionalmente, archivo.
@@ -132,10 +174,38 @@ def my_parse() -> ap.Namespace:
     parser.add_argument("-i", "--index", required=False, 
                         default="data/index/hisat2/genome", 
                         help="Prefijo para el índice de HISAT2")
+    parser.add_argument("-gtf", "--annotation", required=False, 
+                        default="data/genome/genome_Anopheles_gambiae.gtf", 
+                        help="Ruta al archivo de anotación GTF (opcional para el índice)")
+    parser.add_argument("-d", "--data_dir", required=False, 
+                        default="data/curated/", 
+                        help="Directorio raíz de las lecturas curadas")
+    parser.add_argument("-o", "--outdir", required=False, 
+                        default="data/aligned/", 
+                        help="Directorio de salida para los archivos BAM")
+    parser.add_argument("-w", "--workers", type=int, default=6, 
+                        help="Número de hilos para hisat2 y samtools (default: 6)")
+    parser.add_argument("-v", "--verbose", action="store_true", 
+                        help="Muestra mensajes DEBUG en consola")
+    parser.add_argument("--log_file", default="logs/align_reads.log", 
+                        help="Ruta para guardar el archivo de log")
+    
+    return parser.parse_args()
     
 
 def main():
     print("Inicializando módulo / Esto se va a borrar")
+    args = my_parse()
+    setup_logging(args.verbose, args.log_file)
+    logger.info("Inicializando módulo de alineamiento de lecturas")
+
+
+    # 1. Construir el indice
+    try:
+        build_index(args.reference, args.index, args.workers, args.annotation)
+    except (FileNotFoundError, RuntimeError) as e:
+        logger.error("El pipeline se detuvo por un error crítico en la indexación.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

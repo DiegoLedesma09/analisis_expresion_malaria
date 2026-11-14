@@ -34,17 +34,20 @@ import sys
 
 logger = logging.getLogger(__name__)
 
-def build_index(fasta_path: str, index_prefix: str, threads: int = 6, gtf_path: str | None = None) -> None:
+def build_index(fasta_path: str = "data/genome/genome_Anopheles_gambiae.fasta", 
+                index_prefix: str = "data/index/hisat2/genome", 
+                threads: int = 6, 
+                gtf_path: str | None = "data/genome/genome_Anopheles_gambiae.gtf") -> None:
     """
     Construye el índice de HISAT2 a partir del genoma de referencia de Anopheles gambiae.
     Si se proporciona un archivo GTF, extrae los sitios de empalme (splice sites) y 
     exones para optimizar el alineamiento de lecturas de ARN.
 
     Args:
-        fasta_path (str): Ruta al archivo FASTA del genoma.
-        index_prefix (str): Directorio y prefijo del índice (ej. data/index/hisat2/genome).
-        threads (int): Número de hilos para construir el índice.
-        gtf_path (str | None): Ruta opcional al archivo GTF de anotación.
+        fasta_path (str): Ruta al archivo FASTA del genoma (default: data/genome/genome_Anopheles_gambiae.fasta).
+        index_prefix (str): Directorio y prefijo del índice (default: data/index/hisat2/genome).
+        threads (int): Número de hilos para construir el índice (default: 6).
+        gtf_path (str | None): Ruta opcional al archivo GTF de anotación (default: data/genome/genome_Anopheles_gambiae.gtf).
 
     Returns:
         None
@@ -217,14 +220,12 @@ def my_parser() -> ap.Namespace:
         ap.Namespace: Argumentos indicados por el usuario.
     """
     parser = ap.ArgumentParser(description="Pipeline de alineamiento RNA-seq con HISAT2")
-    parser.add_argument("-r", "--reference", required=False, 
-                        default="data/genome/genome_Anopheles_gambiae.fasta", 
+    parser.add_argument("-r", "--reference", required=True,
                         help="Ruta al genoma de referencia (FASTA)")
-    parser.add_argument("-i", "--index", required=False, 
-                        default="data/index/hisat2/genome", 
+    parser.add_argument("-i", "--index", required=True, 
                         help="Prefijo para el índice de HISAT2")
     parser.add_argument("-gtf", "--annotation", required=False, 
-                        default="data/genome/genome_Anopheles_gambiae.gtf", 
+                        default= None, 
                         help="Ruta al archivo de anotación GTF (opcional para el índice)")
     parser.add_argument("-d", "--data_dir", required=False, 
                         default="data/curated/", 
@@ -232,9 +233,9 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("-o", "--outdir", required=False, 
                         default="data/aligned/", 
                         help="Directorio de salida para los archivos BAM")
-    parser.add_argument("-w", "--workers", type=int, default=6, 
+    parser.add_argument("-w", "--workers", type=int, required= False, default= None, 
                         help="Número de hilos para hisat2 y samtools (default: 6)")
-    parser.add_argument("-u, --umbral", type=float, default=70.0,
+    parser.add_argument("-u", "--umbral", type=float, default=70.0,
                         help="Tasa de alineamiento mínima de chequeo de las muestras (default: 70.0)")
     parser.add_argument("-v", "--verbose", action="store_true", 
                         help="Muestra mensajes DEBUG en consola")
@@ -275,7 +276,7 @@ def main():
         # convert_sam_to_bam(sam_path, bam_path)
 
         # Revisa las tasas de alineamiento de las muestras
-        get_alignment_rate()
+        get_alignment_rate(summary_dir=args.outdir, umbral=args.umbral)
     except (FileNotFoundError, RuntimeError) as e:
         logger.error("El pipeline se detuvo por un error crítico en la indexación: %s.", e)
         sys.exit(1)

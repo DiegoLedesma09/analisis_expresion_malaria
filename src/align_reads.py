@@ -4,11 +4,6 @@ align_reads.py
 Módulo para el alineamiento de lecturas RNA-seq curadas contra el genoma 
 de referencia utilizando HISAT2, y procesamiento de alineamientos con samtools.
 
-Requisitos:
-    - HISAT2 (hisat2, hisat2-build disponibles en el PATH)
-    - samtools (disponible en el PATH)
-    - Lecturas pareadas limpias (_val_1.fq, _val_2.fq)
-
 Funciones principales:
     build_index             Construye el índice de HISAT2 (omite si ya existe).
     convert_sam_to_bam      Convierte formato SAM a BAM ordenado e indexado (.bai), 
@@ -23,14 +18,17 @@ Argumentos:
     -gtf, --annotation      Ruta al archivo de anotación GTF (opcional).
     -d, --data_dir          Directorio de entrada con las lecturas curadas.
     -o, --outdir            Directorio de salida para los BAM.
-    -w, --workers           Hilos de procesamiento (default: 8).
+    -w, --workers           Hilos de procesamiento (default: 6).
+    -u, --umbral            Umbral mínimo de tasa de alineamiento (default 70.0)
     -v, --verbose           Muestra mensajes DEBUG.
     --log_file              Guarda el archivo de log.
 """
 
 import argparse as ap
+import glob
 import logging
 import os
+import re
 import subprocess
 import sys
 
@@ -138,6 +136,57 @@ def convert_sam_to_bam(sam_path: str, bam_path: str, threads: int = 6) -> None:
     except subprocess.CalledProcessError as e:
         logger.error("Error en la ejecución de samtools: %s", e.stderr)
         raise RuntimeError(f"samtools falló durante la conversión: {e.stderr}") from e
+
+def get_alignment_rate(summary_dir: str, suffix: str = ".summary.txt", umbral: float = 70.0) -> list:
+    """
+    Lee los resúmenes de HISAT2 de un directorio y extrae la tasa de alineamiento global
+    de cada muestra. Posteriormente, mostrará una advertencia sí la tasa de alineamiento
+    de la muestra es menor al umbral seleccionado (por defecto 70.0)
+
+    Args:
+        summary_dir (str) -> Directorio con los archivos de resumen (uno por muestra,
+            generados con --summary-file de hisat2).
+        suffix (str) -> Sufijo de los archivos de resumen; se quita para obtener el
+            nombre de la muestra.
+        umbral (int) -> Umbral mínimo para el filtro por tasa de alineamiento de cada muestra
+
+    Returns:
+        tasas (dict[str, float]) -> Diccionario {muestra: tasa de alineamiento en %}.
+    """
+    pattern = re.compile(r"([\d.]+)% overall alignment rate")
+    tasas = {}
+
+    for ruta in sorted(glob.glob(os.path.join(summary_dir, f"*{suffix}"))):
+        muestra = os.path.basename(ruta).removesuffix(suffix)
+
+        try:
+            with open(ruta, encoding="utf-8") as f:
+                contenido = f.read()
+        except OSError as e:
+            logger.error("No se pudo leer el resumen %s: %s", ruta, e)
+            raise RuntimeError(f"Fallo al leer {ruta}: {e}") from e
+
+        m = pattern.search(contenido)
+        if m is None:
+            logger.warning("No se encontró la tasa de alineamiento en %s", ruta)
+            raise ValueError(f"No se encontró la tasa de alineamiento en {ruta}")
+        try:
+            tasas[muestra] = float(m.group(1))
+        except ValueError as e:
+            logger.error("Tasa inválida en %s: %s", ruta, m.group(1))
+            raise ValueError(f"Tasa de alineamiento no numérica en {ruta}: {m.group(1)}") from e
+
+    if not tasas:
+        logger.warning("No hay archivos *%s en %s", suffix, summary_dir)
+        raise FileNotFoundError(f"No hay archivos *{suffix} en {summary_dir}")
+
+    for muestra, t in tasas.items():
+        if t < umbral:
+            logger.warning("Muestra %s con tasa de alineamiento baja: %.2f%% (umbral %.1f%%)",
+                           muestra, t, umbral)
+
+    return tasas
+
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     """
     Configura el logging del módulo: consola (stdout) y, opcionalmente, archivo.
@@ -160,7 +209,7 @@ def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
         handlers=handlers,
     )
 
-def my_parse() -> ap.Namespace:
+def my_parser() -> ap.Namespace:
     """
     Define y procesa los argumentos de línea de comandos requeridos para el alineamiento.
 
@@ -185,6 +234,8 @@ def my_parse() -> ap.Namespace:
                         help="Directorio de salida para los archivos BAM")
     parser.add_argument("-w", "--workers", type=int, default=6, 
                         help="Número de hilos para hisat2 y samtools (default: 6)")
+    parser.add_argument("-u, --umbral", type=float, default=70.0,
+                        help="Tasa de alineamiento mínima de chequeo de las muestras (default: 70.0)")
     parser.add_argument("-v", "--verbose", action="store_true", 
                         help="Muestra mensajes DEBUG en consola")
     parser.add_argument("--log_file", default="logs/align_reads.log", 
@@ -194,17 +245,39 @@ def my_parse() -> ap.Namespace:
     
 
 def main():
-    print("Inicializando módulo / Esto se va a borrar")
-    args = my_parse()
+    """
+    Ejecuta el flujo de alineamiento de lecturas RNA-seq contra el genoma de referencia
+    con HISAT2 y procesa los alineamientos con samtools.
+
+    Pasos, en orden:
+        1. Construye el índice de HISAT2 a partir del genoma de referencia (omite la
+           construcción si el índice ya existe). Si se proporciona un GTF, extrae los
+           sitios de empalme y exones para optimizar el alineamiento.
+        2. Alinea con HISAT2 cada par de lecturas curadas (_val_1.fq, _val_2.fq) y
+           guarda el resumen de alineamiento de cada muestra.
+        3. Convierte cada archivo SAM a BAM ordenado e indexado (.bai) y elimina el SAM
+           temporal.
+        4. Lee los resúmenes de HISAT2 y registra una advertencia por cada muestra cuya
+           tasa de alineamiento esté por debajo del umbral.
+    """
+
+    args = my_parser()
     setup_logging(args.verbose, args.log_file)
     logger.info("Inicializando módulo de alineamiento de lecturas")
 
-
-    # 1. Construir el indice
     try:
+        # Construir el indice
         build_index(args.reference, args.index, args.workers, args.annotation)
+
+        # Aquí se colocará la función "run_hisat2"
+
+        # Convierte el archivo SAM a formato BAM
+        # convert_sam_to_bam(sam_path, bam_path)
+
+        # Revisa las tasas de alineamiento de las muestras
+        get_alignment_rate()
     except (FileNotFoundError, RuntimeError) as e:
-        logger.error("El pipeline se detuvo por un error crítico en la indexación.")
+        logger.error("El pipeline se detuvo por un error crítico en la indexación: %s.", e)
         sys.exit(1)
 
 if __name__ == "__main__":

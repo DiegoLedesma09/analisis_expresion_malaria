@@ -129,9 +129,9 @@ def run_hisat2(fwd: str, rev: str, index_prefix: str, output_sam: str, summary_f
 
     try: 
         subprocess.run(cmd, check=True, stderr=subprocess.PIPE, text=True)
-        logger.info("Alineamiento completado: %s", 
+        logger.info("Alineamiento completado: %s. Resumen guardado en: %s", 
                     os.path.basename(output_sam),
-                    "Resumen guardado en: %s", os.path.basename(summary_file))
+                    os.path.basename(summary_file))
     except subprocess.CalledProcessError as e:
         logger.error("Error en la ejecución de HISAT2: %s", e.stderr)
         raise RuntimeError(f"Fallo en alineamiento: {fwd}") from e

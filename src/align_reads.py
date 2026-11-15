@@ -135,7 +135,6 @@ def run_hisat2(fwd: str, rev: str, index_prefix: str, output_sam: str, summary_f
     except subprocess.CalledProcessError as e:
         logger.error("Error en la ejecución de HISAT2: %s", e.stderr)
         raise RuntimeError(f"Fallo en alineamiento: {fwd}") from e
-
     
 def convert_sam_to_bam(sam_path: str, bam_path: str, threads: int = 6) -> None:
     """
@@ -271,8 +270,8 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("-o", "--outdir", required=False, 
                         default="data/aligned/", 
                         help="Directorio de salida para los archivos BAM")
-    parser.add_argument("-w", "--workers", type=int, required= False, default= None, 
-                        help="Número de hilos para hisat2 y samtools (default: 6)")
+    parser.add_argument("-w", "--workers", type=int, required= False, default= 6, 
+                        help="Número de hilos para hisat2 y samtools")
     parser.add_argument("-u", "--umbral", type=float, default=70.0,
                         help="Tasa de alineamiento mínima de chequeo de las muestras (default: 70.0)")
     parser.add_argument("-v", "--verbose", action="store_true", 
@@ -282,7 +281,6 @@ def my_parser() -> ap.Namespace:
     
     return parser.parse_args()
     
-
 def main():
     """
     Ejecuta el flujo de alineamiento de lecturas RNA-seq contra el genoma de referencia
@@ -304,20 +302,43 @@ def main():
     setup_logging(args.verbose, args.log_file)
     logger.info("Inicializando módulo de alineamiento de lecturas")
 
+    grupos = ["resistant","susceptible"]
+
     try:
-        # Construir el indice
         build_index(args.reference, args.index, args.workers, args.annotation)
 
-        # Aquí se colocará la función "run_hisat2"
+        for grupo in grupos:
+            dir_entrada = os.path.join(args.data_dir, grupo)
+            dir_salida = os.path.join(args.outdir, grupo)
+            os.makedirs(dir_salida, exist_ok=True)
 
-        # Convierte el archivo SAM a formato BAM
-        # convert_sam_to_bam(sam_path, bam_path)
+        fwd_files = glob.glob(os.path.join(args.data_dir, "*_val_1.fq"))
+        if not fwd_files:
+            logger.warning("No se encontraron archivos de lecturas _val_1.fq en %s", dir_entrada)
+            continue
 
-        # Revisa las tasas de alineamiento de las muestras
+        for fwd in fwd_files:
+            sample_name = os.path.basename(fwd).replace("_val_1.fq", "")     
+            rev = fwd.replace("_val_1.fq", "_val_2.fq")
+
+            sam_file = os.path.join(args.outdir, f"{sample_name}.sam")
+            bam_file = os.path.join(args.outdir, f"{sample_name}.bam")
+            summary_file = os.path.join(args.outdir, f"{sample_name}.summary.txt")
+
+            try:
+                logger.info("Procesando muestra: %s", sample_name)
+            run_hisat2(fwd, rev, args.index, sam_file, summary_file, args.workers)
+            convert_sam_to_bam(sam_file, bam_file, args.workers)
+
+            except (FileNotFoundError, RuntimeError) as e:
+                logger.error("Error crítico al procesar la muestra %s: %s", sample_name, e)
+                continue 
         get_alignment_rate(summary_dir=args.outdir, umbral=args.umbral)
+
     except (FileNotFoundError, RuntimeError) as e:
-        logger.error("El pipeline se detuvo por un error crítico en la indexación: %s.", e)
+        logger.error("El pipeline se detuvo por un error crítico general: %s.", e)
         sys.exit(1)
+        
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,4 @@
+
 """
 align_reads.py
 ==============
@@ -99,6 +100,43 @@ def build_index(fasta_path: str = "data/genome/genome_Anopheles_gambiae.fasta",
         logger.error("Error al construir el índice con hisat2-build: %s", e.stderr)
         raise RuntimeError(f"Fallo en hisat2-build: {e.stderr}") from e
 
+def run_hisat2(fwd: str, rev: str, index_prefix: str, output_sam: str, summary_file: str, threads: int = 6) -> None:
+    """ 
+    Alinea un par de lecturas (paired-end) contra el genoma de referencia usando HISAT2 y guarda el resumen de alineamiento.
+    
+    Args:
+    fwd (str): Ruta al archivo de lecturas Forwrd (_val_1.fq). 
+    rev (str): Ruta al archivo de lecturas Reverse (_val_2.fq).
+    index_prefix (str): Prefijo del índice de HISAT2.
+    output_sam (str): Ruta de salida para el archivo SAM.
+    summary_file (str): Ruta de salida para el archivo de resumen de alineamiento (.txt).
+    threads (int): Número de hilos para HISAT2 (default: 6).
+
+    Returns:
+        None
+    """
+    if not os.path.exists(fwd) or not os.path.exists(rev):
+        logger.warning("No se encontraron los archivos de lecturas: %s, %s", fwd, rev)
+        raise FileNotFoundError(f"Faltan lecturas: {fwd} o {rev}")
+    os.makedirs(os.path.dirname(output_sam), exist_ok=True)
+    cmd = [
+        "hisat2", "-p", str(threads), "-x", index_prefix, 
+        "-1", fwd, "-2", rev, "-S", output_sam, 
+        "--summary-file", summary_file
+    ]
+
+    logger.info("Alineando lecturas con HISAT2: %s y %s", os.path.basename(fwd), os.path.basename(rev))
+
+    try: 
+        subprocess.run(cmd, check=True, stderr=subprocess.PIPE, text=True)
+        logger.info("Alineamiento completado: %s", 
+                    os.path.basename(output_sam),
+                    "Resumen guardado en: %s", os.path.basename(summary_file))
+    except subprocess.CalledProcessError as e:
+        logger.error("Error en la ejecución de HISAT2: %s", e.stderr)
+        raise RuntimeError(f"Fallo en alineamiento: {fwd}") from e
+
+    
 def convert_sam_to_bam(sam_path: str, bam_path: str, threads: int = 6) -> None:
     """
     Convierte un archivo SAM a un archivo BAM ordenado por coordenadas e 

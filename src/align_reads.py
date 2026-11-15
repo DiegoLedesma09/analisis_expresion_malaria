@@ -26,6 +26,8 @@ Argumentos:
 """
 
 import argparse as ap
+
+from asyncio import threads
 import glob
 import logging
 import os
@@ -280,12 +282,11 @@ def my_parser() -> ap.Namespace:
                         help="Ruta para guardar el archivo de log")
     
     return parser.parse_args()
-    
+
 def main():
     """
     Ejecuta el flujo de alineamiento de lecturas RNA-seq contra el genoma de referencia
     con HISAT2 y procesa los alineamientos con samtools.
-
     Pasos, en orden:
         1. Construye el índice de HISAT2 a partir del genoma de referencia (omite la
            construcción si el índice ya existe). Si se proporciona un GTF, extrae los
@@ -297,13 +298,12 @@ def main():
         4. Lee los resúmenes de HISAT2 y registra una advertencia por cada muestra cuya
            tasa de alineamiento esté por debajo del umbral.
     """
-
     args = my_parser()
     setup_logging(args.verbose, args.log_file)
     logger.info("Inicializando módulo de alineamiento de lecturas")
 
-    grupos = ["resistant","susceptible"]
-
+    grupos = ["resistant", "susceptible"]
+    
     try:
         build_index(args.reference, args.index, args.workers, args.annotation)
 
@@ -312,33 +312,36 @@ def main():
             dir_salida = os.path.join(args.outdir, grupo)
             os.makedirs(dir_salida, exist_ok=True)
 
-        fwd_files = glob.glob(os.path.join(args.data_dir, "*_val_1.fq"))
-        if not fwd_files:
-            logger.warning("No se encontraron archivos de lecturas _val_1.fq en %s", dir_entrada)
-            continue
+            fwd_files = glob.glob(os.path.join(dir_entrada, "*_val_1.fq"))
+            
+            if not fwd_files:
+                logger.warning("No se encontraron lecturas _val_1.fq en %s", dir_entrada)
+                continue
 
-        for fwd in fwd_files:
-            sample_name = os.path.basename(fwd).replace("_val_1.fq", "")     
-            rev = fwd.replace("_val_1.fq", "_val_2.fq")
+            for fwd in sorted(fwd_files):
+                sample_name = os.path.basename(fwd).replace("_val_1.fq", "")
+                rev = fwd.replace("_val_1.fq", "_val_2.fq")
 
-            sam_file = os.path.join(args.outdir, f"{sample_name}.sam")
-            bam_file = os.path.join(args.outdir, f"{sample_name}.bam")
-            summary_file = os.path.join(args.outdir, f"{sample_name}.summary.txt")
+                sam_file = os.path.join(dir_salida, f"{sample_name}.sam")
+                bam_file = os.path.join(dir_salida, f"{sample_name}.bam")
+                summary_file = os.path.join(dir_salida, f"{sample_name}.summary.txt")
 
-            try:
-                logger.info("Procesando muestra: %s", sample_name)
-            run_hisat2(fwd, rev, args.index, sam_file, summary_file, args.workers)
-            convert_sam_to_bam(sam_file, bam_file, args.workers)
+                try:
+                    logger.info("Procesando muestra: %s (grupo: %s)", sample_name, grupo)
+                    
+                    run_hisat2(fwd, rev, args.index, sam_file, summary_file, args.workers)
+                    convert_sam_to_bam(sam_file, bam_file, args.workers)
 
-            except (FileNotFoundError, RuntimeError) as e:
-                logger.error("Error crítico al procesar la muestra %s: %s", sample_name, e)
-                continue 
-        get_alignment_rate(summary_dir=args.outdir, umbral=args.umbral)
+                except (FileNotFoundError, RuntimeError) as e:
+                    logger.error("Error crítico al procesar la muestra %s: %s", sample_name, e)
+                    continue
+            
+            logger.info("Revisando tasas de alineamiento para el grupo: %s", grupo)
+            get_alignment_rate(summary_dir=dir_salida, umbral=args.umbral)
 
     except (FileNotFoundError, RuntimeError) as e:
         logger.error("El pipeline se detuvo por un error crítico general: %s.", e)
         sys.exit(1)
-        
 
 if __name__ == "__main__":
     main()

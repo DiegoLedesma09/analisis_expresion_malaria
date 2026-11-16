@@ -7,8 +7,11 @@ de referencia utilizando HISAT2, y procesamiento de alineamientos con samtools.
 
 Funciones principales:
     build_index             Construye el índice de HISAT2 (omite si ya existe).
+    run_hisat2              Alinea lecturas paired-end con HISAT2 y guarda el resumen.
     convert_sam_to_bam      Convierte formato SAM a BAM ordenado e indexado (.bai), 
                             realizando la limpieza del archivo SAM temporal.
+    get_alignment_rate      Extrae la tasa de alineamiento global de los resúmenes
+                            y advierte si alguna muestra está debajo del umbral.                        
     setup_logging           Configura el logging del módulo.
     my_parser               Define los argumentos de línea de comandos.
     main                    Ejecuta el flujo completo.

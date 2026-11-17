@@ -4,9 +4,9 @@ Project_Id 	 170440
 Project_Acc 	 PRJNA170440
 Project_Type 	 Primary submission
 Project_Data_Type 	 Transcriptome or Gene expression
-Sort_By_ProjectType 	 1048740
-Sort_By_DataType 	 1046050
-Sort_By_Organism 	 26123
+Sort_By_ProjectType 	 1060555
+Sort_By_DataType 	 1057865
+Sort_By_Organism 	 26302
 Project_Subtype 	 
 Project_Target_Scope 	 Multiisolate
 Project_Target_Material 	 Transcriptome

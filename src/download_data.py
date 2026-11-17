@@ -33,18 +33,23 @@ Funciones principales:
     plot_reads_proportion       Cuenta las lecturas de las muestras resistentes y
                                 susceptibles y grafica la proporción por grupo.
     download_reference_genome   Descarga del genoma de referencia.
+    download_genome_GTF         Descarga del archivo de anotación GTF del genoma de 
+                                referencia.
     setup_logging               Configura el logging del módulo.            
-    my_parser                   Define los argumentos de línea de comandos.
+    my_parser                   Definee los argumentos de línea de comandos.
     main                        Ejecuta el flujo completo.
 
 Archivos generados (rutas relativas al directorio donde se ejecuta):
-    docs/metadata/bioproject_metadata
-    docs/metadata/biosample_metadata
-    docs/metadata/sra_metadata
-    docs/metadata/genome_metadata
+    docs/bioproject_metadata
+    docs/biosample_metadata
+    docs/sra_metadata
+    docs/genome_metadata
+    data/genome/genome_{organism}.fasta
+    data/genome/genome_{organism}.gtf
     data/raw/susceptible/sra_runs/     Lecturas de la cepa susceptible
     data/raw/resistent/sra_runs/       Lecturas de la cepa resistente
-    results/reads_proportion
+    data/
+    results/images/reads_proportion
 
 Argumentos:
     -p,  --project      BioProject ID (obligatorio).
@@ -57,6 +62,7 @@ Argumentos:
          --no-reference Omite el genoma de referencia.
     -g,  --graphic      Incluye el gráfico comparativo de proporción de lecturas (default).
          --no-graphic   Omite el gráfico comparativo de proporción de lecturas.
+    -gtf, --annotation  Incluye la anotación GTF del genoma de referencia (default).
     -v,  --verbose      Muestra mensajes DEBUG.
     --log_file          Guarda el archivo de log.
 
@@ -552,6 +558,65 @@ def download_reference_genome(bioproject_id: str, outdir: str = "data/") -> None
             if os.path.exists(tmp):
                 os.remove(tmp)
 
+def download_genome_GTF(bioproject_id: str, outdir: str = "data/") -> None:
+    """
+    Descarga el archivo de anotacion GTF del genoma de referencia del organismo
+    asociado al Bioproject y lo guarda descomrpimido en data/genome/genome_{organism}.gtf.
+
+    Args:
+        bioproject_id (str) -> Identificador del Bioproject
+        outdir (str) -> Directorio de salida (por defecto 'data/')
+
+    Returns:
+        None
+    """
+    organism = get_bioproject_organism(bioproject_id)
+    assembly = get_reference_assembly(organism)
+
+    ftp_path = assembly.get("FtpPath_RefSeq") or assembly.get("FtpPath_GenBank")
+    if not ftp_path:
+        raise ValueError(f"El ensamblaje de {organism} no tiene ruta de descarga")
+
+    base_url = ftp_path.replace("ftp://", "https://", 1).rstrip("/")
+    file_name = f"{base_url.split('/')[-1]}_genomic.gtf.gz"
+    url = f"{base_url}/{file_name}"
+
+    genome_dir = os.path.join(outdir, "genome")
+    os.makedirs(genome_dir, exist_ok=True)
+
+    safe_name = re.sub(r"\W+", "_", organism).strip("_")
+    gtf_path = os.path.join(genome_dir, f"genome_{safe_name}.gtf")
+
+    if os.path.exists(gtf_path):
+        logger.info("El archivo GTF ya existe, se omite la descarga: %s", gtf_path)
+        return
+
+    gz_tmp = gtf_path + ".gz.part"
+    gtf_tmp = gtf_path + ".part"
+
+    logger.info("Descargando anotación GTF de %s desde %s", organism, url)
+    try:
+        urllib.request.urlretrieve(url, gz_tmp)
+
+        with gzip.open(gz_tmp, "rb") as f_in, open(gtf_tmp, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+        os.replace(gtf_tmp, gtf_path)
+        logger.info("Anotación GTF guardada en: %s", gtf_path)
+
+    except HTTPError as e:
+        if e.code == 404:
+            raise ValueError(f"No se encontró archivo GTF en NCBI para {organism} ({url})") from e
+        raise ConnectionError(f"No se pudo descargar {url}: error {e.code}") from e
+    except URLError as e:
+        raise ConnectionError(f"No se pudo descargar {url}: {e}") from e
+    except (gzip.BadGzipFile, EOFError) as e:
+        raise ValueError(f"El archivo GTF descargado está corrupto o incompleto: {e}") from e
+    finally:
+        for tmp in (gz_tmp, gtf_tmp):
+            if os.path.exists(tmp):
+                os.remove(tmp)
+
 def count_reads(fastq_path: str) -> int:
     """
     Cuenta las lecturas de un archivo FASTQ (cada lectura ocupa 4 líneas).
@@ -571,7 +636,7 @@ def count_reads(fastq_path: str) -> int:
     return n_lines // 4
 
 
-def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/") -> None:
+def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/images") -> None:
     """
     Cuenta las lecturas de las muestras resistentes y susceptibles y grafica
     la proporción de cada grupo. Guarda la figura en results/reads_proportion.png.
@@ -580,7 +645,7 @@ def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/") -> 
 
     Args:
         data_dir (str) -> Directorio de datos (por defecto 'data/')
-        outdir (str) -> Directorio de salida de la figura (por defecto 'results/')
+        outdir (str) -> Directorio de salida de la figura (por defecto 'results/images')
 
     Returns:
         dict[str, int] -> Lecturas por fenotipo
@@ -661,6 +726,8 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("--thr_fq", required=False, type=int, default=8, help="Workers para faster-dump")
     parser.add_argument("-r", "--reference", action=ap.BooleanOptionalAction, default=True, 
                         help="Descarga del genoma de referencia (usa --no-reference para omitirlo)")
+    parser.add_argument("-gtf", "--annotation", action=ap.BooleanOptionalAction, default=True,
+                        help="Descarga de la anotación GTF de referencia (usa --no-annotation para omitirla)")
     parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,
                         help="Incluye el grafico comparativo de proporcion de lecturas (usa --no-graphic para omitirlo)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Muestra mensajes DEBUG")
@@ -678,7 +745,9 @@ def main() -> None:
         4. Descarga las lecturas de los SRA, separadas por fenotipo.
         5. Si --reference está activo, guarda los metadatos del genoma de
            referencia y lo descarga.
-        6. Si --graphic está activo, crea el grafico comparativo de proporcion
+        6- Si --annotation está activo, guarda el archivo .gtf del genoma de
+           referencia y lo descarga.
+        7. Si --graphic está activo, crea el grafico comparativo de proporcion
             de lecturas
 
     Los argumentos se leen de la línea de comandos mediante my_parser().
@@ -708,10 +777,14 @@ def main() -> None:
         if args.reference:
             get_genome_metadata(args.project, outdir=args.outdirm)
             download_reference_genome(args.project, outdir=args.outdird)
+
+        # Anotación GTF (opcional)
+        if args.annotation:
+            download_genome_GTF(args.project, outdir=args.outdird)
         
         # Grafico comparativo (opcional)
         if args.graphic:
-            plot_reads_proportion(data_dir="data/", outdir="results/")
+            plot_reads_proportion(data_dir="data/", outdir="results/images")
 
         logger.info("Pipeline terminado correctamente")
 

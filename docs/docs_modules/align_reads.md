@@ -42,6 +42,7 @@ analisis_expresion_malaria/
 │           └── SRR*.summary.txt     # Resumen de tasas de alineamiento
 └── logs/
     └── align_reads.log
+```
 
 ## Pipeline 
 

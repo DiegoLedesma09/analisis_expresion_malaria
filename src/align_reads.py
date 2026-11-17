@@ -265,9 +265,9 @@ def my_parser() -> ap.Namespace:
                         help="Ruta al genoma de referencia (FASTA)")
     parser.add_argument("-i", "--index", required=True, 
                         help="Prefijo para el índice de HISAT2")
-    parser.add_argument("-c1", "--condition1", required=True, default="resistant",
+    parser.add_argument("-c1", "--condition1", required=False, default="resistant",
                         help="Condición 1 de los datos de expresión")
-    parser.add_argument("-c2", "--condition2", required=True, default="susceptible",
+    parser.add_argument("-c2", "--condition2", required=False, default="susceptible",
                         help="Condición 2 de los datos de expresión")
     parser.add_argument("-gtf", "--annotation", required=False, default= None, 
                         help="Ruta al archivo de anotación GTF (opcional para el índice)")

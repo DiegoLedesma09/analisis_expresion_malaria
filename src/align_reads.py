@@ -256,7 +256,7 @@ def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
 def my_parser() -> ap.Namespace:
     """
     Define y procesa los argumentos de línea de comandos requeridos para el alineamiento.
-
+    
     Returns:
         ap.Namespace: Argumentos indicados por el usuario.
     """
@@ -306,7 +306,7 @@ def main():
     setup_logging(args.verbose, args.log_file)
     logger.info("Inicializando módulo de alineamiento de lecturas")
 
-    grupos = ["resistant", "susceptible"]
+    grupos = [args.condition1, args.condition2]
     
     try:
         build_index(args.reference, args.index, args.workers, args.annotation)

@@ -20,6 +20,8 @@ Argumentos:
     -r, --reference         Ruta al genoma de referencia (FASTA).
     -i, --index             Ruta base y prefijo para el índice HISAT2.
     -gtf, --annotation      Ruta al archivo de anotación GTF (opcional).
+    -c1, --condition1       Condición 1 de los datos de expresión (default: resistant)
+    -c2, --condition2       Condición 2 de los datos de expresión (default: susceptible)
     -d, --data_dir          Directorio de entrada con las lecturas curadas.
     -o, --outdir            Directorio de salida para los BAM.
     -w, --workers           Hilos de procesamiento (default: 6).
@@ -29,8 +31,6 @@ Argumentos:
 """
 
 import argparse as ap
-
-from asyncio import threads
 import glob
 import logging
 import os
@@ -66,7 +66,7 @@ def build_index(fasta_path: str = "data/genome/genome_Anopheles_gambiae.fasta",
         logger.warning("No se encontró el genoma FASTA en: %s", fasta_path)
         raise FileNotFoundError(f"Archivo FASTA faltante: {fasta_path}")
 
-    os.makedirs(os.path.dirname(index_prefix), exist_ok=True)
+    os.makedirs(os.path.dirname(index_prefix) or ".", exist_ok=True)
 
     # se contruye en una lista el comando minimo que ocupa hisat2-build
     cmd = ["hisat2-build", "-p", str(threads)]
@@ -110,12 +110,12 @@ def run_hisat2(fwd: str, rev: str, index_prefix: str, output_sam: str, summary_f
     Alinea un par de lecturas (paired-end) contra el genoma de referencia usando HISAT2 y guarda el resumen de alineamiento.
     
     Args:
-    fwd (str): Ruta al archivo de lecturas Forwrd (_val_1.fq). 
-    rev (str): Ruta al archivo de lecturas Reverse (_val_2.fq).
-    index_prefix (str): Prefijo del índice de HISAT2.
-    output_sam (str): Ruta de salida para el archivo SAM.
-    summary_file (str): Ruta de salida para el archivo de resumen de alineamiento (.txt).
-    threads (int): Número de hilos para HISAT2 (default: 6).
+        fwd (str): Ruta al archivo de lecturas Forward (_val_1.fq). 
+        rev (str): Ruta al archivo de lecturas Reverse (_val_2.fq).
+        index_prefix (str): Prefijo del índice de HISAT2.
+        output_sam (str): Ruta de salida para el archivo SAM.
+        summary_file (str): Ruta de salida para el archivo de resumen de alineamiento (.txt).
+        threads (int): Número de hilos para HISAT2 (default: 6).
 
     Returns:
         None
@@ -158,7 +158,7 @@ def convert_sam_to_bam(sam_path: str, bam_path: str, threads: int = 6) -> None:
         logger.warning("No se encontró el archivo SAM para convertir: %s", sam_path)
         raise FileNotFoundError(f"Archivo SAM faltante: {sam_path}")
 
-    os.makedirs(os.path.dirname(bam_path), exist_ok=True)
+    os.makedirs(os.path.dirname(bam_path) or ".", exist_ok=True)
     logger.info("Convirtiendo SAM a BAM ordenado: %s", bam_path)
 
     # Comando para ordenar directamente desde SAM a BAM
@@ -174,7 +174,6 @@ def convert_sam_to_bam(sam_path: str, bam_path: str, threads: int = 6) -> None:
         subprocess.run(cmd_index, check=True, stderr=subprocess.PIPE, text=True)
         logger.info("Índice .bai generado con éxito.")
 
-        # Limpieza: Borra el SAM original para evitar una saturación de espacio en donde se ejecuta el pipeline
         logger.info("Eliminando archivo SAM temporal: %s", sam_path)
         os.remove(sam_path)
 
@@ -182,7 +181,7 @@ def convert_sam_to_bam(sam_path: str, bam_path: str, threads: int = 6) -> None:
         logger.error("Error en la ejecución de samtools: %s", e.stderr)
         raise RuntimeError(f"samtools falló durante la conversión: {e.stderr}") from e
 
-def get_alignment_rate(summary_dir: str, suffix: str = ".summary.txt", umbral: float = 70.0) -> list:
+def get_alignment_rate(summary_dir: str, suffix: str = ".summary.txt", umbral: float = 70.0) -> dict[str, float]:
     """
     Lee los resúmenes de HISAT2 de un directorio y extrae la tasa de alineamiento global
     de cada muestra. Posteriormente, mostrará una advertencia sí la tasa de alineamiento
@@ -193,7 +192,7 @@ def get_alignment_rate(summary_dir: str, suffix: str = ".summary.txt", umbral: f
             generados con --summary-file de hisat2).
         suffix (str) -> Sufijo de los archivos de resumen; se quita para obtener el
             nombre de la muestra.
-        umbral (int) -> Umbral mínimo para el filtro por tasa de alineamiento de cada muestra
+        umbral (float) -> Umbral mínimo para el filtro por tasa de alineamiento de cada muestra
 
     Returns:
         tasas (dict[str, float]) -> Diccionario {muestra: tasa de alineamiento en %}.
@@ -266,14 +265,16 @@ def my_parser() -> ap.Namespace:
                         help="Ruta al genoma de referencia (FASTA)")
     parser.add_argument("-i", "--index", required=True, 
                         help="Prefijo para el índice de HISAT2")
-    parser.add_argument("-gtf", "--annotation", required=False, 
-                        default= None, 
+    parser.add_argument("-c1", "--condition1", required=True, default="resistant",
+                        help="Condición 1 de los datos de expresión")
+    parser.add_argument("-c2", "--condition2", required=True, default="susceptible",
+                        help="Condición 2 de los datos de expresión")
+    parser.add_argument("-gtf", "--annotation", required=False, default= None, 
                         help="Ruta al archivo de anotación GTF (opcional para el índice)")
     parser.add_argument("-d", "--data_dir", required=False, 
                         default="data/curated/", 
                         help="Directorio raíz de las lecturas curadas")
-    parser.add_argument("-o", "--outdir", required=False, 
-                        default="data/aligned/", 
+    parser.add_argument("-o", "--outdir", required=False, default="data/aligned/", 
                         help="Directorio de salida para los archivos BAM")
     parser.add_argument("-w", "--workers", type=int, required= False, default= 6, 
                         help="Número de hilos para hisat2 y samtools")
@@ -340,9 +341,12 @@ def main():
                     continue
             
             logger.info("Revisando tasas de alineamiento para el grupo: %s", grupo)
-            get_alignment_rate(summary_dir=dir_salida, umbral=args.umbral)
+            try:
+                get_alignment_rate(summary_dir=dir_salida, umbral=args.umbral)
+            except (FileNotFoundError, RuntimeError, ValueError) as e:
+                logger.error("No se pudieron revisar las tasas del grupo %s: %s", grupo, e)
 
-    except (FileNotFoundError, RuntimeError) as e:
+    except (FileNotFoundError, RuntimeError, ValueError) as e:
         logger.error("El pipeline se detuvo por un error crítico general: %s.", e)
         sys.exit(1)
 

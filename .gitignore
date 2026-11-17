@@ -18,12 +18,14 @@ env/
 Thumbs.db
 
 # Raw and processed data
-data/raw/
-data/processed/
+data/
 
 # Generated results
-results/generated/
+results/
+
+# Log files
+logs/
 
 # Temporary files
 *.log
-*.tmplogs/
+*.out

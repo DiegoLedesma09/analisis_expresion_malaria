@@ -1,4 +1,18 @@
-# Expresión diferencial entre organismos de *Anopheles gambiae*, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
+<div align="center">
+
+# MOSQUITO DGE - INSECTICIDE EXPRESION ANALYSIS
+## Expresión diferencial entre organismos de *Anopheles gambiae*, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
+
+</div>
+
+<div align="center">
+<img width="661" height="424" alt="Gemini_Generated_Image_auj7xzauj7xzauj7" src="https://github.com/user-attachments/assets/741c1c89-d4ac-4fee-ba2a-2fbc57b58f4f" />
+<br>
+<br>
+<img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" height="48" alt="Python" />
+<br>
+<br>
+</div>
 
 Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a deltametrina frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
 

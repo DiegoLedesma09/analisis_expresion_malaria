@@ -1,0 +1,15 @@
+====== Metadatos de BioSamples asociados a PRJNA170440 ======
+
+--- BioSample ID: Desconocido ---
+Accession 	 SAMN01087357
+Id 	 N/A
+Title 	 Susceptible
+Organism 	 Anopheles gambiae
+ProjectAccession 	 N/A
+
+--- BioSample ID: Desconocido ---
+Accession 	 SAMN01087356
+Id 	 N/A
+Title 	 Resistant
+Organism 	 Anopheles gambiae
+ProjectAccession 	 N/A

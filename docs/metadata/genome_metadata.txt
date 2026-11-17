@@ -1,0 +1,9 @@
+====== Metadatos del Genoma asociado al BioProject: PRJNA170440 ======
+
+AssemblyAccession 	 GCF_943734735.2
+AssemblyName 	 idAnoGambNW_F1_1
+AssemblyStatus 	 Chromosome
+Organism 	 Anopheles gambiae (African malaria mosquito)
+RefSeq_category 	 reference genome
+FtpPath_RefSeq 	 ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/943/734/735/GCF_943734735.2_idAnoGambNW_F1_1
+FtpPath_GenBank 	 ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/943/734/735/GCA_943734735.2_idAnoGambNW_F1_1

@@ -42,16 +42,81 @@ import argparse as ap
 import logging
 import os
 import sys
-
+import glob
+import subprocess
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-def find_bams():
-    print("Monicua")
+def find_bams(data_dir:str, grupo: str) -> list:
+    """
+    Localiza los archivos BAM ordenados e indexados de un grupo específico.
 
-def run_featureCounts():
-    print("Monicua")
+    Args: 
+        data_dir (str): Directorio donde están los archivos BAM (ej. "data/aligned/"). 
+        grupo (str): Nombre del grupo a buscar.
+    
+    Returns:
+        list: Lista con las rutas de los archivos .bam encontrados. 
+    """
+    logger.info("Buscando archivos BAM en el directorio %s para el grupo %s", data_dir, grupo)
+
+    dir_grupo = os.path.join(data_dir, grupo)
+
+    if not os.path.isdir(dir_grupo):
+        raise FileNotFoundError(
+        f"No se encontró la carpeta del grupo '{grupo}' en {data_dir}"
+    )
+    bam_files = sorted(glob.glob(os.path.join(dir_grupo, "*.bam")))
+    if not bams:
+        logger.warning("No se encontraron archivos .bam en %s", dir_grupo)
+    else:
+        logger.info("Se encontraron %d archivos BAM en el grupo '%s'", len(bams), grupo)
+        
+    return bam_files
+
+def run_featureCounts(bam_files: list, gtf_path: str, outdir: str, workers: int) -> None:
+    """
+    Ejecuta featureCounts para generar la matriz de conteos.
+
+    Args:
+        bam_files (list): Lista de rutas a los archivos .bam.
+        gtf_path (str): Ruta al archivo de anotación .gtf.
+        outdir (str): Directorio de salida.
+        workers (int): Número de hilos.
+
+    Returns:
+        None
+    """
+    if not bam_files:
+            logger.error("La lista de BAMs está vacía. No se puede ejecutar featureCounts.")
+            return
+    
+    if not os.path.exists(gtf_path):
+            logger.error("No se encontró el archivo GTF en: %s", gtf_path)
+            raise FileNotFoundError(f"Falta el GTF: {gtf_path}")
+    
+    command = [
+        "featureCounts",
+        "-T", str(workers),
+        "-p",
+        "-B",
+        "-C",
+        "-t", "exon",
+        "-g", "gene_id",
+        "-a", gtf_path,
+        "-o", outdir,
+        *bam_files
+    ]
+    
+    logger.info("Ejecutando featureCounts con %d hilos", workers)
+    
+    try:
+        subprocess.run(command, check=True, stderr=subprocess.PIPE, text=True)
+        logger.info("featureCounts completado. Resultados guardados en %s", outdir)
+    except subprocess.CalledProcessError as e:
+        logger.error("Error al ejecutar featureCounts: %s", e)
+        raise
 
 def parse_summary():
     print("Luisosoma")

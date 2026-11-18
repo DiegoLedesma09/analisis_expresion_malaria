@@ -108,25 +108,52 @@ def load_counts(ruta_matriz: str) -> pd.DataFrame:
 
     return matriz_conteos
 
-def load_metadata(matriz_conteos:pd.DataFrame, condition1:str = "susceptible", condition2:str="resistant") -> pd.DataFrame:
+def load_metadata(matriz_conteos: pd.DataFrame, metadata_path: str | None = None, 
+                  condition1: str = "susceptible", condition2: str = "resistant") -> pd.DataFrame:
     """
-    Crea la tabla de metadatos que usará InMoose a partir de las dos diferentes poblaciones para
-    poder hacer la comparación.
+    Crea o carga la tabla de metadatos. Si se proporciona un archivo externo, lo lee;
+    de lo contrario, infiere o asigna las condiciones según los argumentos.
 
     Args:
-        matriz_conteos (pd.DataFrame) -> Matriz de conteos parseada sin columnas innecesarias, indexada 
-            en "Geneid" y con los nombres de las muestras correctos.
+        matriz_conteos (pd.DataFrame) -> Matriz de conteos limpia (genes × muestras).
+        metadata_path (str | None) -> Ruta a un archivo de metadatos (opcional).
+        condition1 (str) -> Condición de referencia.
+        condition2 (str) -> Condición de prueba.
     
     Returns:
-        meta (pd.DataFrame) -> Matriz de metadatos asociada a cada columna según la condición (resistant, 
-            susceptible) de cada lectura.
+        meta (pd.DataFrame) -> Tabla de metadatos indexada por muestra con la columna 'condition'.
     """
+    if metadata_path and os.path.exists(metadata_path):
+        meta = pd.read_csv(metadata_path, sep=None, engine='python')
+        # Asumimos que la primera columna o una llamada 'sample' es el índice
+        if 'sample' in meta.columns:
+            meta = meta.set_index('sample')
+        else:
+            meta = meta.set_index(meta.columns[0])
+        
+        # Asegurar que el orden de las muestras coincida exactamente con la matriz
+        meta = meta.loc[matriz_conteos.columns]
+        meta["condition"] = pd.Categorical(meta["condition"])
+        return meta
 
-    meta = pd.DataFrame({"condition": [condition2, condition2, condition1, condition1]},
-        index=matriz_conteos.columns,
-    )
-    meta["condition"] = pd.Categorical(meta["condition"],
-                                   categories=[condition1, condition2])
+    # Si no hay archivo, usamos la lógica flexible basada en los nombres o argumentos
+    conditions = []
+    for sample in matriz_conteos.columns:
+        sample_lower = str(sample).lower()
+        if any(k in sample_lower for k in [condition2.lower(), "resist", "treat", "case"]):
+            conditions.append(condition2)
+        else:
+            conditions.append(condition1)
+    
+    # División equitativa por defecto si los nombres no dan pistas claras
+    if len(set(conditions)) == 1 and len(matriz_conteos.columns) > 1:
+        n = len(matriz_conteos.columns)
+        half = n // 2
+        conditions = [condition2] * half + [condition1] * (n - half)
+
+    meta = pd.DataFrame({"condition": conditions}, index=matriz_conteos.columns)
+    meta["condition"] = pd.Categorical(meta["condition"], categories=[condition1, condition2])
+    
     return meta
 
 def filter_genes(matriz_conteos:pd.DataFrame) -> pd.DataFrame:
@@ -386,8 +413,8 @@ def main():
     matriz_conteos = load_counts(args.matrix)
 
     # Creación de la matriz de metadatos asociada a las columnas de la matriz de conteos
-    meta = load_metadata(matriz_conteos)
-
+    meta = load_metadata(matriz_conteos, metadata_path=args.metadata, condition1=args.condition1, condition2=args.condition2)
+    
     # Filtramos la matriz por incidencia de genes
     matriz_filtrada = filter_genes(matriz_conteos)
 

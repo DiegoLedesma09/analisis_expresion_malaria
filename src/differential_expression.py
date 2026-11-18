@@ -79,15 +79,14 @@ from sklearn.decomposition import PCA
 
 logger = logging.getLogger(__name__)
 
-def load_counts(ruta_matriz:str) -> pd.DataFrame:
+def load_counts(ruta_matriz: str) -> pd.DataFrame:
     """
-    lee la matriz de conteos de featureCounts y la deja limpia (genes × muestras, 
+    Lee la matriz de conteos de featureCounts y la deja limpia (genes × muestras, 
     sin las columnas de anotación). Indexa en la columna "Geneid" y quita el prefijo .bam
-    de las muestras
+    de las muestras.
 
     Args:
-        ruta_matriz (str) -> Cadena de texto que sea la ruta global hacia la matriz de conteos 
-            generada por FeatureCounts
+        ruta_matriz (str) -> Cadena de texto que sea la ruta hacia la matriz de conteos.
 
     Returns:
         matriz_conteos (pd.DataFrame) -> Matriz de conteos parseada sin columnas innecesarias, indexada 
@@ -98,7 +97,10 @@ def load_counts(ruta_matriz:str) -> pd.DataFrame:
     df = df.set_index("Geneid")
 
     col_del = ["Chr", "Start", "End", "Strand", "Length"]
-    matriz_conteos = df.drop(columns=col_del)
+    
+    col_presentes = [c for c in col_del if c in df.columns]
+    matriz_conteos = df.drop(columns=col_presentes)
+    
     matriz_conteos.columns = [os.path.basename(c).removesuffix(".bam") for c in matriz_conteos.columns]
 
     assert matriz_conteos.index.is_unique
@@ -106,8 +108,7 @@ def load_counts(ruta_matriz:str) -> pd.DataFrame:
 
     return matriz_conteos
 
-
-def load_metadata(matriz_conteos:pd.DataFrame) -> pd.DataFrame:
+def load_metadata(matriz_conteos:pd.DataFrame, condition1:str = "susceptible", condition2:str="resistant") -> pd.DataFrame:
     """
     Crea la tabla de metadatos que usará InMoose a partir de las dos diferentes poblaciones para
     poder hacer la comparación.
@@ -121,11 +122,11 @@ def load_metadata(matriz_conteos:pd.DataFrame) -> pd.DataFrame:
             susceptible) de cada lectura.
     """
 
-    meta = pd.DataFrame({"condition": ["resistant", "resistant", "susceptible", "susceptible"]},
+    meta = pd.DataFrame({"condition": [condition2, condition2, condition1, condition1]},
         index=matriz_conteos.columns,
     )
     meta["condition"] = pd.Categorical(meta["condition"],
-                                   categories=["susceptible", "resistant"])
+                                   categories=[condition1, condition2])
     return meta
 
 def filter_genes(matriz_conteos:pd.DataFrame) -> pd.DataFrame:
@@ -342,7 +343,8 @@ def my_parser() -> ap.Namespace:
     """    
     parser = ap.ArgumentParser(
     description="Pipeline para del análisis de expresión diferencial con el uso de InMoose")
-    parser.add_argument("-m", "--matrix", required=True, help="Ruta a la matriz de conteo generada por featureCounts")
+    parser.add_argument("-m", "--matrix", required=True, default="data/conteos/clean/clean_matrix.tsv",
+                        help="Ruta a la matriz de conteo generada por featureCounts")
     parser.add_argument("-o", "--outdir", required=False, default="results/exp_dif", help="Directorio de salida")
     parser.add_argument("-pca", "--pcaplot", action=ap.BooleanOptionalAction, default=True,
                         help="Incluye el grafico de PCA para la comparación de genes (usa --no-pcaplot para omitirlo)")

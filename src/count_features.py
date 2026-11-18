@@ -52,11 +52,15 @@ Uso:
 """
 
 import argparse as ap
+import glob
 import logging
 import os
-import sys
-import glob
 import subprocess
+import sys
+
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -78,26 +82,29 @@ def find_bams(data_dir:str, grupo: str) -> list:
     dir_grupo = os.path.join(data_dir, grupo)
 
     if not os.path.isdir(dir_grupo):
-        raise FileNotFoundError(
-        f"No se encontró la carpeta del grupo '{grupo}' en {data_dir}"
-    )
+        logger.error("No se encontró la carpeta del grupo %s en %s", grupo, data_dir)
+        raise FileNotFoundError(f"No se encontró la carpeta del grupo '{grupo}' en {data_dir}")
+
     bam_files = sorted(glob.glob(os.path.join(dir_grupo, "*.bam")))
     if not bam_files:
-        logger.warning("No se encontraron archivos .bam en %s", dir_grupo)
+        logger.error("No se encontraron archivos .bam en %s", dir_grupo)
+        raise FileNotFoundError(f"No se encontraron archivos .bam en {dir_grupo}")
+
     else:
         logger.info("Se encontraron %d archivos BAM en el grupo '%s'", len(bam_files), grupo)
         
     return bam_files
 
-def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers: int) -> None:
+def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers: int, strand: int = 0) -> None:
     """
     Ejecuta featureCounts para generar la matriz de conteos.
 
     Args:
         bam_files (list): Lista de rutas a los archivos .bam.
         gtf_path (str): Ruta al archivo de anotación .gtf.
-        outdir (str): Directorio de salida.
+        output_file (str): Ruta del archivo de salida de featureCounts.
         workers (int): Número de hilos.
+        strand (int): Especificidad de cadena: 0 (unstranded), 1 (forward), 2 (reverse).
 
     Returns:
         None
@@ -115,9 +122,10 @@ def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers:
     command = [
         "featureCounts",
         "-T", str(workers),
-        "-p",
+        "-p", "--countReadPairs",
         "-B",
         "-C",
+        "-s", str(strand),
         "-t", "exon",
         "-g", "gene_id",
         "-a", gtf_path,
@@ -131,35 +139,35 @@ def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers:
         subprocess.run(command, check=True, stderr=subprocess.PIPE, text=True)
         logger.info("featureCounts completado. Resultados guardados en %s", output_file)
     except subprocess.CalledProcessError as e:
-        logger.error("Error al ejecutar featureCounts: %s", e)
+        logger.error("Error al ejecutar featureCounts: %s", e.stderr)
         raise RuntimeError(f"Fallo en featureCounts: {e.stderr}") from e
 
-def parse_summary(summary_path: str, umbral: float = 70.0) -> dict[str, float]:
+def parse_summary(summary_file: str, umbral: float = 70.0) -> dict[str, float]:
     """
     Lee el archivo .summary generado por featureCounts, calcula el porcentaje de
     lecturas asignadas por muestra y emite una advertencia si alguna queda por
     debajo del umbral establecido.
 
     Args:
-        summary_path (str): Ruta al archivo .summary de featureCounts.
+        summary_file (str): Ruta al archivo .summary generado por featureCounts.
         umbral (float): Umbral mínimo esperado de lecturas asignadas en % (default: 70.0).
 
     Returns:
         dict[str, float]: Diccionario {muestra: porcentaje_asignado}.
     """
-    if not os.path.exists(summary_path):
-        logger.error("No se encontró el archivo de resumen de featureCounts: %s", summary_path)
-        raise FileNotFoundError(f"Archivo .summary faltante: {summary_path}")
+    if not os.path.exists(summary_file):
+        logger.error("No se encontró el resumen: %s", summary_file)
+        raise FileNotFoundError(f"Resumen faltante: {summary_file}")
 
     try:
-        df = pd.read_csv(summary_path, sep="\t", index_col=0)
+        df = pd.read_csv(summary_file, sep="\t", index_col=0)
     except (OSError, pd.errors.EmptyDataError, pd.errors.ParserError) as e:
-        logger.error("No se pudo leer el resumen %s: %s", summary_path, e)
-        raise RuntimeError(f"Fallo al leer el archivo de resumen {summary_path}: {e}") from e
+        logger.error("No se pudo leer el resumen %s: %s", summary_file, e)
+        raise RuntimeError(f"Fallo al leer el archivo de resumen {summary_file}: {e}") from e
 
     if df.empty or "Assigned" not in df.index:
-        logger.error("El archivo %s está vacío o no contiene la fila 'Assigned'", summary_path)
-        raise ValueError(f"Formato inválido en el resumen de featureCounts: {summary_path}")
+        logger.error("El archivo %s está vacío o no contiene la fila 'Assigned'", summary_file)
+        raise ValueError(f"Formato inválido en el resumen de featureCounts: {summary_file}")
 
     assignment_rates: dict[str, float] = {}
 
@@ -169,7 +177,7 @@ def parse_summary(summary_path: str, umbral: float = 70.0) -> dict[str, float]:
         total = df[col].sum()
 
         if total <= 0:
-            logger.error("La muestra %s tiene 0 lecturas totales en %s", sample_name, summary_path)
+            logger.error("La muestra %s tiene 0 lecturas totales en %s", sample_name, summary_file)
             raise ValueError(f"Conteo total igual a cero para la muestra {sample_name}")
 
         pct = float((assigned / total) * 100)
@@ -193,12 +201,12 @@ def parse_summary(summary_path: str, umbral: float = 70.0) -> dict[str, float]:
 
     return assignment_rates 
 
-def clean_counts(path_matrix:str, outdir:str) -> pd.DataFrame:
+def clean_counts(raw_counts_file: str, outdir: str = "data/counts/clean") -> pd.DataFrame:
     """
     Limpia la matriz de conteos realizada por featureCounts, dejando una matriz (genes x muestras)
 
     Args:
-        path_matrix (str) -> Ruta a la matriz de conteos realizada por featureCounts
+        raw_counts_file (str) -> Ruta a la matriz de conteos cruda realizada por featureCounts
         outdir (str) -> Ruta hacia el directorio de salida
 
     Returns:
@@ -207,27 +215,21 @@ def clean_counts(path_matrix:str, outdir:str) -> pd.DataFrame:
 
     logger.info("Iniciando limpieza de la matriz de conteos generada por featureCounts")
 
-    try:
-        df = pd.read_csv(path_matrix, sep="\t", comment="#")
+    if not os.path.exists(raw_counts_file):
+        logger.error("No se encontró la matriz cruda: %s", raw_counts_file)
+        raise FileNotFoundError(f"Matriz faltante: {raw_counts_file}")
 
-        sample_columns = [col for col in df.columns if col not in ["Geneid", "Chr", "Start", "End", "Strand", "Length"]]
-        clean_matrix = df.set_index("Geneid")[sample_columns]
+    df = pd.read_csv(raw_counts_file, sep="\t", comment="#").set_index("Geneid")
+    clean_matrix = df.drop(columns=["Chr", "Start", "End", "Strand", "Length"])
+    clean_matrix.columns = [os.path.basename(c).removesuffix(".bam") for c in clean_matrix.columns]
 
-        clean_matrix.columns = [col.split('/')[-1].replace('.bam', '') for col in clean_matrix.columns]
+    os.makedirs(outdir, exist_ok=True)
+    output_file = os.path.join(outdir, "clean_matrix.tsv")
+    clean_matrix.to_csv(output_file, sep="\t")
 
-        os.makedirs(outdir, exist_ok=True)
-        output_file = os.path.join(outdir, "clean_matrix.tsv")
-        clean_matrix.to_csv(output_file, sep="\t")
+    logger.info("Se ha realizado la limpieza de la matriz realizada por featureCounts y se ha guardado en %s", output_file)
 
-        logger.info("Se ha realizado la limpieza de la matriz realizada por featureCounts y se ha guardado en %s", output_file)
-
-        return clean_matrix
-
-    except FileNotFoundError as e:
-        logger.warning("No se ha encontrado el archivo en la ruta %s", e)
-    except ValueError as e:
-        logger.warning("La limpieza de la matriz a fallado %s", e)
-        raise ValueError(f"Se detecto el error {e}")
+    return clean_matrix
 
 def plot_assignment(assignment_rates: dict[str, float], outdir: str = "results/images/", umbral: float = 70.0) -> None:
     """
@@ -369,13 +371,18 @@ def main():
     summary_path = f"{raw_counts_path}.summary"
 
     try:
-        find_bams()
+        grupos = [args.condition1, args.condition2]
 
-        run_featureCounts()
+        bam_files = []
+        for condition in grupos:
+            bam_files += find_bams(data_dir=args.data_dir, grupo=condition)
+
+        run_featureCounts(bam_files=bam_files, gtf_path=args.annotation, output_file=raw_counts_path,
+                          workers=args.workers, strand=args.strand)
 
         assignment_rates = parse_summary(summary_path, umbral=args.umbral)
 
-        clean_counts(path_matrix=raw_counts_path, outdir=args.outdir)
+        clean_counts(raw_counts_path, outdir=os.path.join(args.outdir, "clean"))
 
         if args.graphic:
             plot_assignment(assignment_rates, outdir="results/images/", umbral=args.umbral)

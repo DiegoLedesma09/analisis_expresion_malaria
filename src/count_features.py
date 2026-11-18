@@ -68,10 +68,10 @@ def find_bams(data_dir:str, grupo: str) -> list:
         f"No se encontró la carpeta del grupo '{grupo}' en {data_dir}"
     )
     bam_files = sorted(glob.glob(os.path.join(dir_grupo, "*.bam")))
-    if not bams:
+    if not bam_files:
         logger.warning("No se encontraron archivos .bam en %s", dir_grupo)
     else:
-        logger.info("Se encontraron %d archivos BAM en el grupo '%s'", len(bams), grupo)
+        logger.info("Se encontraron %d archivos BAM en el grupo '%s'", len(bam_files), grupo)
         
     return bam_files
 
@@ -118,8 +118,64 @@ def run_featureCounts(bam_files: list, gtf_path: str, outdir: str, workers: int)
         logger.error("Error al ejecutar featureCounts: %s", e)
         raise
 
-def parse_summary():
-    print("Luisosoma")
+def parse_summary(summary_path: str, umbral: float = 70.0) -> dict[str, float]:
+    """
+    Lee el archivo .summary generado por featureCounts, calcula el porcentaje de
+    lecturas asignadas por muestra y emite una advertencia si alguna queda por
+    debajo del umbral establecido.
+
+    Args:
+        summary_path (str): Ruta al archivo .summary de featureCounts.
+        umbral (float): Umbral mínimo esperado de lecturas asignadas en % (default: 70.0).
+
+    Returns:
+        dict[str, float]: Diccionario {muestra: porcentaje_asignado}.
+    """
+    if not os.path.exists(summary_path):
+        logger.error("No se encontró el archivo de resumen de featureCounts: %s", summary_path)
+        raise FileNotFoundError(f"Archivo .summary faltante: {summary_path}")
+
+    try:
+        df = pd.read_csv(summary_path, sep="\t", index_col=0)
+    except (OSError, pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+        logger.error("No se pudo leer el resumen %s: %s", summary_path, e)
+        raise RuntimeError(f"Fallo al leer el archivo de resumen {summary_path}: {e}") from e
+
+    if df.empty or "Assigned" not in df.index:
+        logger.error("El archivo %s está vacío o no contiene la fila 'Assigned'", summary_path)
+        raise ValueError(f"Formato inválido en el resumen de featureCounts: {summary_path}")
+
+    assignment_rates: dict[str, float] = {}
+
+    for col in df.columns:
+        sample_name = os.path.basename(col).removesuffix(".bam")
+        assigned = df.loc["Assigned", col]
+        total = df[col].sum()
+
+        if total <= 0:
+            logger.error("La muestra %s tiene 0 lecturas totales en %s", sample_name, summary_path)
+            raise ValueError(f"Conteo total igual a cero para la muestra {sample_name}")
+
+        pct = float((assigned / total) * 100)
+        assignment_rates[sample_name] = pct
+
+        logger.info(
+            "Muestra %s: %.2f%% de lecturas asignadas (%d / %d)",
+            sample_name,
+            pct,
+            assigned,
+            total,
+        )
+
+        if pct < umbral:
+            logger.warning(
+                "Muestra %s con porcentaje de asignación bajo: %.2f%% (umbral %.1f%%)",
+                sample_name,
+                pct,
+                umbral,
+            )
+
+        return assignment_rates 
 
 def clean_counts(path_matrix:str, outdir:str) -> pd.DataFrame:
     """
@@ -157,7 +213,7 @@ def clean_counts(path_matrix:str, outdir:str) -> pd.DataFrame:
         logger.warning("La limpieza de la matriz a fallado %s", e)
         raise ValueError(f"Se detecto el error {e}")
 
-def plot_assigment():
+def plot_assigment(assignment_rates: dict[str, float], outdir: str = "results/images/", umbral: float = 70.0) -> None:
     print("Luisosoma")
 
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:

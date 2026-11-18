@@ -104,7 +104,7 @@ BioSample en `docs/metadata/biosample_metadata.txt`.
 4. Ejecuta `fasterq-dump <SRR> -O <dir> --split-files -e <workers>`.
 
 Las lecturas se almacenan en `data/raw/susceptible/sra_runs/` o
-`data/raw/resistent/sra_runs/` según el fenotipo detectado. Si aparece un
+`data/raw/resistant/sra_runs/` según el fenotipo detectado. Si aparece un
 fenotipo distinto, se crea `data/raw/<fenotipo>/sra_runs/`.
 
 ### Genoma de referencia

@@ -28,7 +28,7 @@ Funciones principales:
 Archivos generados:
     data/counts/raw_counts.txt                  Salida cruda de featureCounts.
     data/counts/raw_counts.txt.summary          Resumen estadístico de asignación.
-    data/counts/counts_matrix.tsv               Matriz limpia de conteos (genes x muestras).
+    data/counts/clean_matrix.tsv               Matriz limpia de conteos (genes x muestras).
     data/counts/samples_metadata.tsv            Tabla de metadatos (muestra y condición).
     results/images/assignment_proportion.png    Gráfica de lecturas asignadas por muestra.
     logs/count_features.log                     Archivo de registro de ejecución.
@@ -58,9 +58,6 @@ import os
 import subprocess
 import sys
 
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 

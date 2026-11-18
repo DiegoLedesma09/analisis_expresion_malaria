@@ -48,7 +48,7 @@ EJEMPLO:
 proyecto/
 ├── data/            # Datos de ejemplo o archivos pequeños
 ├──── curated/       # Datos curados
-├────── resistent/   # Datos de organismo resistente curados
+├────── resistant/   # Datos de organismo resistente curados
 ├────── susceptible/ # Datos de organismo susceptible curados
 ├─── genome/         # Genoma del organismo
 ├──── raw/           # Datos crudos

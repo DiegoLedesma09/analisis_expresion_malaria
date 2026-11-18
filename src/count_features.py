@@ -25,17 +25,30 @@ Funciones principales:
     setup_logging       Configura el logging del módulo.
     main                Ejecuta el flujo completo.
 
-# Agregar archivos generados aquí
+Archivos generados:
+    data/counts/raw_counts.txt                  Salida cruda de featureCounts.
+    data/counts/raw_counts.txt.summary          Resumen estadístico de asignación.
+    data/counts/counts_matrix.tsv               Matriz limpia de conteos (genes x muestras).
+    data/counts/samples_metadata.tsv            Tabla de metadatos (muestra y condición).
+    results/images/assignment_proportion.png    Gráfica de lecturas asignadas por muestra.
+    logs/count_features.log                     Archivo de registro de ejecución.
 
 Argumentos:
+    -d,   --data_dir    Directorio raíz con los BAM por condición (default: data/aligned/).
+    -gtf, --annotation  Ruta al archivo de anotación GTF.
+    -c1,  --condition1  Condición 1 (default: resistant).
+    -c2,  --condition2  Condición 2 (default: susceptible).
+    -s,   --strand      Especificidad de cadena: 0 (unstranded), 1 (forward), 2 (reverse) (default: 0).
     -w,  --workers      Número de hilos para featureCounts (default: 6).
     -o,  --outdir       Directorio de salida (default: results).
+    -u,   --umbral      Umbral mínimo de lecturas asignadas en % (default: 70.0).
     -v,  --verbose      Muestra mensajes DEBUG.
     --log_file          Ruta del archivo de log.
     -g,  --graphic      Incluye el gráfico comparativo del conteo (default).
          --no-graphic   Omite el gráfico comparativo del conteo.
 
-# Agregar uso aquí
+Uso:
+    python src/count_features.py -gtf data/genome/genome_Anopheles_gambiae.gtf -v
 """
 
 import argparse as ap
@@ -44,6 +57,7 @@ import os
 import sys
 import glob
 import subprocess
+import matplotlib.pyplot as plt
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -75,7 +89,7 @@ def find_bams(data_dir:str, grupo: str) -> list:
         
     return bam_files
 
-def run_featureCounts(bam_files: list, gtf_path: str, outdir: str, workers: int) -> None:
+def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers: int) -> None:
     """
     Ejecuta featureCounts para generar la matriz de conteos.
 
@@ -90,11 +104,13 @@ def run_featureCounts(bam_files: list, gtf_path: str, outdir: str, workers: int)
     """
     if not bam_files:
             logger.error("La lista de BAMs está vacía. No se puede ejecutar featureCounts.")
-            return
+            raise ValueError("No se proporcionaron archivos BAM para contar.")
     
     if not os.path.exists(gtf_path):
             logger.error("No se encontró el archivo GTF en: %s", gtf_path)
             raise FileNotFoundError(f"Falta el GTF: {gtf_path}")
+    
+    os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
     
     command = [
         "featureCounts",
@@ -105,7 +121,7 @@ def run_featureCounts(bam_files: list, gtf_path: str, outdir: str, workers: int)
         "-t", "exon",
         "-g", "gene_id",
         "-a", gtf_path,
-        "-o", outdir,
+        "-o", output_file,
         *bam_files
     ]
     
@@ -113,10 +129,10 @@ def run_featureCounts(bam_files: list, gtf_path: str, outdir: str, workers: int)
     
     try:
         subprocess.run(command, check=True, stderr=subprocess.PIPE, text=True)
-        logger.info("featureCounts completado. Resultados guardados en %s", outdir)
+        logger.info("featureCounts completado. Resultados guardados en %s", output_file)
     except subprocess.CalledProcessError as e:
         logger.error("Error al ejecutar featureCounts: %s", e)
-        raise
+        raise RuntimeError(f"Fallo en featureCounts: {e.stderr}") from e
 
 def parse_summary(summary_path: str, umbral: float = 70.0) -> dict[str, float]:
     """
@@ -306,6 +322,17 @@ def my_parser() -> ap.Namespace:
         ap.Namespace: Argumentos indicados por el usuario.
     """
     parser = ap.ArgumentParser(description="Pipeline para la creación de la matriz de conteos con featureCounts")
+    parser.add_argument("-d", "--data_dir", required=False, default="data/aligned/",
+                        help="Directorio raíz con los BAM organizados por condición (default: data/aligned/)")
+    parser.add_argument("-gtf", "--annotation", required=False,
+                        default="data/genome/genome_Anopheles_gambiae.gtf",
+                        help="Ruta al archivo de anotación GTF")
+    parser.add_argument("-c1", "--condition1", required=False, default="resistant",
+                        help="Condición 1 de los datos de expresión (default: resistant)")
+    parser.add_argument("-c2", "--condition2", required=False, default="susceptible",
+                        help="Condición 2 de los datos de expresión (default: susceptible)")
+    parser.add_argument("-s", "--strand", type=int, choices=[0, 1, 2], default=0,
+                        help="Especificidad de cadena: 0 (unstranded), 1 (forward), 2 (reverse) (default: 0)")
     parser.add_argument("-o", "--outdir", required=False, default="data/counts/", 
                         help="Directorio de salida")
     parser.add_argument("-w", "--workers", type=int, required= False, default= 6, 

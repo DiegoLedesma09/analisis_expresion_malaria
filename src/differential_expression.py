@@ -20,6 +20,8 @@ Requisitos:
 Funciones principales:
     load_counts                 Lee la matriz de featureCounts y la deja limpia
                                 (genes × muestras, sin columnas de anotación).
+    infer_conditions            Obtiene la condición de cada muestra a partir de la
+                                carpeta del BAM en el encabezado de featureCounts.
     load_metadata               Crea la tabla de metadatos con la condición de
                                 cada muestra.
     filter_genes                Elimina genes de baja expresión
@@ -47,8 +49,11 @@ Archivos generados (rutas relativas al directorio donde se ejecuta):
     logs/differential_expression.log
 
 Argumentos:
-    -m,   --matrix        Ruta a la matriz de conteos de featureCounts (obligatorio).
+    -m,   --matrix        Ruta a la matriz cruda de featureCounts (default: data/counts/raw_counts.txt).
+    -md,  --metadata      Tabla de metadatos con columnas "sample" y "condition" (opcional).
     -o,   --outdir        Directorio de salida de los resultados (default: results/exp_dif).
+    -c1,  --condition1    Condición de prueba (default: resistant).
+    -c2,  --condition2    Condición de referencia (default: susceptible).
     -pca, --pcaplot       Incluye el gráfico de PCA (default).
           --no-pcaplot    Omite el gráfico de PCA.
     -vol, --volcanoplot   Incluye el volcano plot (default).
@@ -57,13 +62,14 @@ Argumentos:
     --log_file            Archivo de log (default: logs/differential_expression.log).
 
 Uso:
-    python src/differential_expression.py -m results/matriz_conteos.txt -v
-    python src/differential_expression.py -m results/matriz_conteos.txt --no-pcaplot --no-volcanoplot
+    python src/differential_expression.py -v
+    python src/differential_expression.py -m data/counts/raw_counts.txt --no-pcaplot --no-volcanoplot
 
 Nota:
     Ejecutar desde la raíz del proyecto, ya que las rutas de salida por defecto
-    son relativas. La tabla de metadatos asume 4 muestras en este orden de
-    columnas: 2 resistentes y después 2 susceptibles.
+    son relativas. Si no se indica --metadata, la condición de cada muestra se
+    toma de la carpeta de su BAM en el encabezado de la matriz cruda
+    (data/aligned/<condición>/<muestra>.bam), por lo que no sirve la matriz ya limpia.
 """
 
 import argparse as ap
@@ -78,6 +84,8 @@ from inmoose.deseq2 import DESeq, DESeqDataSet
 from sklearn.decomposition import PCA
 
 logger = logging.getLogger(__name__)
+
+COLUMNAS_ANOTACION = ["Chr", "Start", "End", "Strand", "Length"]
 
 def load_counts(ruta_matriz: str) -> pd.DataFrame:
     """
@@ -96,9 +104,7 @@ def load_counts(ruta_matriz: str) -> pd.DataFrame:
     df = pd.read_csv(ruta_matriz, sep="\t", comment="#")
     df = df.set_index("Geneid")
 
-    col_del = ["Chr", "Start", "End", "Strand", "Length"]
-    
-    col_presentes = [c for c in col_del if c in df.columns]
+    col_presentes = [c for c in COLUMNAS_ANOTACION if c in df.columns]
     matriz_conteos = df.drop(columns=col_presentes)
     
     matriz_conteos.columns = [os.path.basename(c).removesuffix(".bam") for c in matriz_conteos.columns]
@@ -108,52 +114,93 @@ def load_counts(ruta_matriz: str) -> pd.DataFrame:
 
     return matriz_conteos
 
-def load_metadata(matriz_conteos: pd.DataFrame, metadata_path: str | None = None, 
-                  condition1: str = "susceptible", condition2: str = "resistant") -> pd.DataFrame:
+def infer_conditions(ruta_matriz: str) -> dict[str, str]:
     """
-    Crea o carga la tabla de metadatos. Si se proporciona un archivo externo, lo lee;
-    de lo contrario, infiere o asigna las condiciones según los argumentos.
+    Obtiene la condición de cada muestra a partir de la carpeta del BAM que featureCounts
+    deja en el encabezado de la matriz cruda (por ejemplo, data/aligned/resistant/SRR1.bam
+    corresponde a la condición "resistant").
+
+    Args:
+        ruta_matriz (str) -> Ruta a la matriz cruda de featureCounts (con las rutas de los BAM
+            en el encabezado).
+
+    Returns:
+        condiciones (dict[str, str]) -> Diccionario {muestra: condición}.
+    """
+    encabezado = pd.read_csv(ruta_matriz, sep="\t", comment="#", nrows=0)
+    columnas = [c for c in encabezado.columns if c != "Geneid" and c not in COLUMNAS_ANOTACION]
+
+    condiciones = {}
+    for col in columnas:
+        carpeta = os.path.basename(os.path.dirname(col))
+        if not carpeta:
+            raise ValueError(
+                f"La columna '{col}' no trae la ruta del BAM, no se puede inferir la condición. "
+                "Usa la matriz cruda de featureCounts o indica un archivo con --metadata."
+            )
+        condiciones[os.path.basename(col).removesuffix(".bam")] = carpeta
+
+    return condiciones
+
+def load_metadata(matriz_conteos: pd.DataFrame, ruta_matriz: str, metadata_path: str | None = None,
+                  condition1: str = "resistant", condition2: str = "susceptible") -> pd.DataFrame:
+    """
+    Crea la tabla de metadatos que usará InMoose. Si se indica un archivo de metadatos, lo lee;
+    de lo contrario, toma la condición de cada muestra de la carpeta de su BAM en la matriz cruda.
+    La condición de referencia es condition2, por lo que un log2FoldChange positivo indica mayor
+    expresión en condition1.
 
     Args:
         matriz_conteos (pd.DataFrame) -> Matriz de conteos limpia (genes × muestras).
-        metadata_path (str | None) -> Ruta a un archivo de metadatos (opcional).
-        condition1 (str) -> Condición de referencia.
-        condition2 (str) -> Condición de prueba.
-    
+        ruta_matriz (str) -> Ruta a la matriz cruda de featureCounts.
+        metadata_path (str | None) -> Ruta a un archivo de metadatos con las columnas "sample"
+            y "condition" (opcional).
+        condition1 (str) -> Condición de prueba (default: resistant).
+        condition2 (str) -> Condición de referencia (default: susceptible).
+
     Returns:
-        meta (pd.DataFrame) -> Tabla de metadatos indexada por muestra con la columna 'condition'.
+        meta (pd.DataFrame) -> Tabla de metadatos indexada por muestra, con la columna "condition"
+            como categórica (referencia: condition2) y en el mismo orden que las columnas de la matriz.
     """
-    if metadata_path and os.path.exists(metadata_path):
-        meta = pd.read_csv(metadata_path, sep=None, engine='python')
-        # Asumimos que la primera columna o una llamada 'sample' es el índice
-        if 'sample' in meta.columns:
-            meta = meta.set_index('sample')
+    if metadata_path:
+        if not os.path.exists(metadata_path):
+            logger.error("No se encontró el archivo de metadatos: %s", metadata_path)
+            raise FileNotFoundError(f"Metadatos faltantes: {metadata_path}")
+
+        meta = pd.read_csv(metadata_path, sep=None, engine="python")
+        if "sample" in meta.columns:
+            meta = meta.set_index("sample")
         else:
             meta = meta.set_index(meta.columns[0])
-        
-        # Asegurar que el orden de las muestras coincida exactamente con la matriz
-        meta = meta.loc[matriz_conteos.columns]
-        meta["condition"] = pd.Categorical(meta["condition"])
-        return meta
 
-    # Si no hay archivo, usamos la lógica flexible basada en los nombres o argumentos
-    conditions = []
-    for sample in matriz_conteos.columns:
-        sample_lower = str(sample).lower()
-        if any(k in sample_lower for k in [condition2.lower(), "resist", "treat", "case"]):
-            conditions.append(condition2)
-        else:
-            conditions.append(condition1)
-    
-    # División equitativa por defecto si los nombres no dan pistas claras
-    if len(set(conditions)) == 1 and len(matriz_conteos.columns) > 1:
-        n = len(matriz_conteos.columns)
-        half = n // 2
-        conditions = [condition2] * half + [condition1] * (n - half)
+        faltantes = [m for m in matriz_conteos.columns if m not in meta.index]
+        if faltantes:
+            raise ValueError(f"Muestras sin condición en {metadata_path}: {faltantes}")
 
-    meta = pd.DataFrame({"condition": conditions}, index=matriz_conteos.columns)
-    meta["condition"] = pd.Categorical(meta["condition"], categories=[condition1, condition2])
-    
+        meta = meta.loc[matriz_conteos.columns, ["condition"]]
+    else:
+        condiciones = infer_conditions(ruta_matriz)
+
+        faltantes = [m for m in matriz_conteos.columns if m not in condiciones]
+        if faltantes:
+            raise ValueError(f"Muestras sin condición inferida: {faltantes}")
+
+        meta = pd.DataFrame({"condition": [condiciones[m] for m in matriz_conteos.columns]},
+                            index=matriz_conteos.columns)
+
+    desconocidas = set(meta["condition"]) - {condition1, condition2}
+    if desconocidas:
+        raise ValueError(f"Condiciones no reconocidas {sorted(desconocidas)}; se esperaban "
+                         f"'{condition1}' y '{condition2}'")
+
+    meta["condition"] = pd.Categorical(meta["condition"], categories=[condition2, condition1])
+
+    conteo_por_condicion = meta["condition"].value_counts()
+    for condicion, n in conteo_por_condicion.items():
+        if n < 2:
+            logger.warning("La condición '%s' tiene %d muestra(s); DESeq2 necesita réplicas para "
+                           "estimar la dispersión", condicion, n)
+
     return meta
 
 def filter_genes(matriz_conteos:pd.DataFrame) -> pd.DataFrame:
@@ -257,14 +304,14 @@ def plot_pca(matriz_filtrada: pd.DataFrame, meta: pd.DataFrame, outdir: str = "r
     Genera el gráfico de PCA de las muestras y lo guarda como imagen. Los conteos se normalizan
     a log2(CPM+1) para corregir por profundidad de secuenciación y estabilizar la varianza, y el
     PCA se calcula sobre las muestras (genes como variables). Cada punto es una muestra,
-    etiquetada con su nombre y coloreada según su condición (rojo: resistant, azul: susceptible).
-    Los ejes indican el porcentaje de varianza explicada por PC1 y PC2.
+    etiquetada con su nombre y coloreada según su condición (azul: condición de referencia,
+    rojo: condición de prueba). Los ejes indican el porcentaje de varianza explicada por PC1 y PC2.
 
     Args:
         matriz_filtrada (pd.DataFrame) -> Matriz de conteos crudos (enteros) genes × muestras, sin
             genes de baja expresión.
         meta (pd.DataFrame) -> Tabla de metadatos indexada por muestra, con la columna "condition"
-            ("resistant" o "susceptible").
+            como categórica (la primera categoría es la referencia).
         outdir (str) -> Directorio donde se guarda la figura (por defecto results/images/).
 
     Returns:
@@ -278,7 +325,8 @@ def plot_pca(matriz_filtrada: pd.DataFrame, meta: pd.DataFrame, outdir: str = "r
     coords = pca.fit_transform(log_cpm.T)
     var = pca.explained_variance_ratio_ * 100
 
-    COLORES = {"resistant": "#d62728", "susceptible": "#1f77b4"}
+    categorias = list(meta["condition"].cat.categories)
+    COLORES = {categorias[0]: "#1f77b4", categorias[1]: "#d62728"}
 
     fig, ax = plt.subplots(figsize=(6, 5))
     for i, muestra in enumerate(log_cpm.columns):
@@ -370,14 +418,17 @@ def my_parser() -> ap.Namespace:
     """    
     parser = ap.ArgumentParser(
     description="Pipeline para del análisis de expresión diferencial con el uso de InMoose")
-    parser.add_argument("-m", "--matrix", required=True, default="data/conteos/clean/clean_matrix.tsv",
-                        help="Ruta a la matriz de conteo generada por featureCounts")
-    parser.add_argument("-md", "--metadata", required=False, default= None, help="Tabla de metadatos")
+    parser.add_argument("-m", "--matrix", required=False, default="data/counts/raw_counts.txt",
+                        help="Ruta a la matriz cruda generada por featureCounts")
+    parser.add_argument("-md", "--metadata", required=False, default=None,
+                        help="Tabla de metadatos con las columnas 'sample' y 'condition' (opcional)")
     parser.add_argument("-o", "--outdir", required=False, default="results/exp_dif", help="Directorio de salida")
     parser.add_argument("-pca", "--pcaplot", action=ap.BooleanOptionalAction, default=True,
                         help="Incluye el grafico de PCA para la comparación de genes (usa --no-pcaplot para omitirlo)")
-    parser.add_argument("-c1", "--condition1", required=False, default= "resistant", help="Condición a comparar del grupo 1")
-    parser.add_argument("-c2", "--condition2", required=False, default= "susceptible", help="Condición a comparar del grupo 2")
+    parser.add_argument("-c1", "--condition1", required=False, default="resistant",
+                        help="Condición de prueba (default: resistant)")
+    parser.add_argument("-c2", "--condition2", required=False, default="susceptible",
+                        help="Condición de referencia (default: susceptible)")
     parser.add_argument("-vol", "--volcanoplot", action=ap.BooleanOptionalAction, default=True,
                         help="Incluye el grafico de volcano para la comparación de genes (usa --no-volcanoplot para omitirlo)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Muestra mensajes DEBUG")
@@ -397,8 +448,7 @@ def main():
         4. Filtra los genes de baja expresión.
         5. Corre el análisis de expresión diferencial.
         6. Clasifica los genes en up_resistant, up_susceptible o ns.
-        7. Guarda en --outdir la tabla completa, el universo de genes probados y las listas de
-           genes por categoría (insumos para el análisis de GO).
+        7. Guarda en --outdir la tabla completa y las listas de genes por categoría.
         8. Si --pcaplot está activo, genera el PCA de las muestras.
         9. Si --volcanoplot está activo, genera el volcano plot.
 
@@ -416,7 +466,8 @@ def main():
     matriz_conteos = load_counts(args.matrix)
 
     # Creación de la matriz de metadatos asociada a las columnas de la matriz de conteos
-    meta = load_metadata(matriz_conteos, condition1=args.condition1, condition2=args.condition2)
+    meta = load_metadata(matriz_conteos, args.matrix, args.metadata,
+                         condition1=args.condition1, condition2=args.condition2)
 
     # Filtramos la matriz por incidencia de genes
     matriz_filtrada = filter_genes(matriz_conteos)
@@ -428,7 +479,7 @@ def main():
     df_clasificado = classify_genes(df_res)
 
     # Se guardan los resultados en la carpeta "results/exp_dif"
-    save_results(df_clasificado)
+    save_results(df_clasificado, args.outdir)
 
     # Se plotea el PCA plot
     if args.pcaplot:

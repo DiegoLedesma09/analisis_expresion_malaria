@@ -47,7 +47,7 @@ Archivos generados (rutas relativas al directorio donde se ejecuta):
     data/genome/genome_{organism}.fasta
     data/genome/genome_{organism}.gtf
     data/raw/susceptible/sra_runs/     Lecturas de la cepa susceptible
-    data/raw/resistent/sra_runs/       Lecturas de la cepa resistente
+    data/raw/resistant/sra_runs/       Lecturas de la cepa resistente
     data/
     results/images/reads_proportion
 
@@ -329,11 +329,11 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
 
     # Creo los directorios de salida
     susceptible_dir = os.path.join(outdir, "raw", "susceptible", "sra_runs")
-    resistent_dir = os.path.join(outdir, "raw", "resistent", "sra_runs")
+    resistant_dir = os.path.join(outdir, "raw", "resistant", "sra_runs")
 
     # Creo los directorios de salida en caso de que no existan
     os.makedirs(susceptible_dir, exist_ok=True)
-    os.makedirs(resistent_dir, exist_ok=True)
+    os.makedirs(resistant_dir, exist_ok=True)
 
     # Busco en Sra el sra_id buscando sí es la cepa Susceptible o Resistente al insecticida
     for i, sra_id in enumerate(sra_ids, start=1):
@@ -361,8 +361,8 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
         file_domain = fenotipo.lower()
         if "susceptible" in file_domain:
             domain_dir = susceptible_dir
-        elif "resistent" in file_domain:
-            domain_dir = resistent_dir
+        elif "resistant" in file_domain:
+            domain_dir = resistant_dir
         else:
             domain_dir = os.path.join(outdir, "raw", file_domain, "sra_runs")
             os.makedirs(domain_dir, exist_ok=True)
@@ -651,7 +651,7 @@ def plot_reads_proportion(data_dir: str = "data/", outdir: str = "results/images
         dict[str, int] -> Lecturas por fenotipo
     """
     counts = {}
-    for phenotype in ("resistent", "susceptible"):
+    for phenotype in ("resistant", "susceptible"):
         runs_dir = os.path.join(data_dir, "raw", phenotype, "sra_runs")
         if not os.path.isdir(runs_dir):
             raise FileNotFoundError(f"No existe el directorio: {runs_dir}")

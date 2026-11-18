@@ -219,10 +219,10 @@ EJEMPLO: data/raw conserva originales y data/processed los derivados. -->
 proyecto/
 ├── data/
 │   ├── raw/
-|      ├── resistent/
+|      ├── resistant/
 |      ├── susceptible/
 │   ├── curated/
-|      ├── resistent/
+|      ├── resistant/
 |      ├── susceptible/
 ├── docs/
 ├── envs/

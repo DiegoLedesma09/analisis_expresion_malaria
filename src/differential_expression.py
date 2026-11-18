@@ -376,6 +376,8 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("-o", "--outdir", required=False, default="results/exp_dif", help="Directorio de salida")
     parser.add_argument("-pca", "--pcaplot", action=ap.BooleanOptionalAction, default=True,
                         help="Incluye el grafico de PCA para la comparación de genes (usa --no-pcaplot para omitirlo)")
+    parser.add_argument("-c1", "--condition1", required=False, default= "resistant", help="Condición a comparar del grupo 1")
+    parser.add_argument("-c2", "--condition2", required=False, default= "susceptible", help="Condición a comparar del grupo 2")
     parser.add_argument("-vol", "--volcanoplot", action=ap.BooleanOptionalAction, default=True,
                         help="Incluye el grafico de volcano para la comparación de genes (usa --no-volcanoplot para omitirlo)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Muestra mensajes DEBUG")

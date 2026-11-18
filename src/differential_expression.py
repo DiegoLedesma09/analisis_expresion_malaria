@@ -372,6 +372,7 @@ def my_parser() -> ap.Namespace:
     description="Pipeline para del análisis de expresión diferencial con el uso de InMoose")
     parser.add_argument("-m", "--matrix", required=True, default="data/conteos/clean/clean_matrix.tsv",
                         help="Ruta a la matriz de conteo generada por featureCounts")
+    parser.add_argument("-md", "--metadata", required=False, default= None, help="Tabla de metadatos")
     parser.add_argument("-o", "--outdir", required=False, default="results/exp_dif", help="Directorio de salida")
     parser.add_argument("-pca", "--pcaplot", action=ap.BooleanOptionalAction, default=True,
                         help="Incluye el grafico de PCA para la comparación de genes (usa --no-pcaplot para omitirlo)")
@@ -413,8 +414,8 @@ def main():
     matriz_conteos = load_counts(args.matrix)
 
     # Creación de la matriz de metadatos asociada a las columnas de la matriz de conteos
-    meta = load_metadata(matriz_conteos, metadata_path=args.metadata, condition1=args.condition1, condition2=args.condition2)
-    
+    meta = load_metadata(matriz_conteos, condition1=args.condition1, condition2=args.condition2)
+
     # Filtramos la matriz por incidencia de genes
     matriz_filtrada = filter_genes(matriz_conteos)
 

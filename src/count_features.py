@@ -123,7 +123,6 @@ def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers:
         "featureCounts",
         "-T", str(workers),
         "-p", "--countReadPairs",
-        "-B",
         "-C",
         "-s", str(strand),
         "-t", "exon",

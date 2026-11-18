@@ -20,7 +20,7 @@ Funciones principales:
     run_featurecounts   Ejecuta featureCounts para la creación de la matriz de conteos
     parse_summary       Lee el .summary y devuelve el porcentaje de lecturas asignadas por muestra.
     clean_counts        Deja una matriz limpia (genes x muestras)
-    plot_assigment      Gráfica opcional de lecturas asignadas por muestra.
+    plot_assignment      Gráfica opcional de lecturas asignadas por muestra.
     my_parser           Define los argumentos de línea de comandos.
     setup_logging       Configura el logging del módulo.
     main                Ejecuta el flujo completo.
@@ -32,8 +32,8 @@ Argumentos:
     -o,  --outdir       Directorio de salida (default: results).
     -v,  --verbose      Muestra mensajes DEBUG.
     --log_file          Ruta del archivo de log.
-    -g,  --graphic      Incluye el gráfico comparativo del trimming (default).
-         --no-graphic   Omite el gráfico comparativo del trimming.
+    -g,  --graphic      Incluye el gráfico comparativo del conteo (default).
+         --no-graphic   Omite el gráfico comparativo del conteo.
 
 # Agregar uso aquí
 """
@@ -111,7 +111,7 @@ def parse_summary(summary_path: str, umbral: float = 70.0) -> dict[str, float]:
                 umbral,
             )
 
-        return assignment_rates 
+    return assignment_rates 
 
 def clean_counts(path_matrix:str, outdir:str) -> pd.DataFrame:
     """
@@ -149,8 +149,68 @@ def clean_counts(path_matrix:str, outdir:str) -> pd.DataFrame:
         logger.warning("La limpieza de la matriz a fallado %s", e)
         raise ValueError(f"Se detecto el error {e}")
 
-def plot_assigment(assignment_rates: dict[str, float], outdir: str = "results/images/", umbral: float = 70.0) -> None:
-    print("Luisosoma")
+def plot_assignment(assignment_rates: dict[str, float], outdir: str = "results/images/", umbral: float = 70.0) -> None:
+    """
+    Genera y guarda una gráfica de barras con el porcentaje de lecturas asignadas
+    por muestra, resaltando aquellas que estén por debajo del umbral.
+
+    Args:
+        assignment_rates (dict[str, float]): Diccionario {muestra: porcentaje_asignado}.
+        outdir (str): Directorio de salida de la imagen (default: results/images/).
+        umbral (float): Umbral mínimo de referencia en % (default: 70.0).
+
+    Returns:
+        None
+    """
+    if not assignment_rates:
+        logger.warning("No hay tasas de asignación disponibles para graficar.")
+        raise ValueError("El diccionario de tasas de asignación está vacío.")
+
+    os.makedirs(outdir, exist_ok=True)
+    output_path = os.path.join(outdir, "assignment_proportion.png")
+
+    samples = list(assignment_rates.keys())
+    rates = list(assignment_rates.values())
+    colors = ["#1b9e77" if r >= umbral else "#d95f02" for r in rates]
+
+    fig, ax = plt.subplots(figsize=(max(6, len(samples) * 1.4), 4.5))
+    try:
+        bars = ax.bar(samples, rates, color=colors, width=0.55)
+
+        for bar, r in zip(bars, rates):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 1.5,
+                f"{r:.1f}%",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
+
+        ax.axhline(
+            umbral,
+            color="#7570b3",
+            linestyle="--",
+            linewidth=1.2,
+            label=f"Umbral mínimo ({umbral:.1f}%)",
+        )
+
+        ax.set_ylabel("Lecturas asignadas (%)")
+        ax.set_xlabel("Muestra")
+        ax.set_title("Porcentaje de lecturas asignadas por muestra (featureCounts)")
+        ax.set_ylim(0, 112)
+        ax.tick_params(axis="x", rotation=20)
+        ax.legend(loc="upper right")
+
+        fig.tight_layout()
+        fig.savefig(output_path, dpi=300)
+        logger.info("Gráfica de asignación guardada en: %s", output_path)
+
+    except OSError as e:
+        logger.error("No se pudo guardar la gráfica en %s: %s", output_path, e)
+        raise RuntimeError(f"Fallo al guardar la gráfica en {output_path}: {e}") from e
+    finally:
+        plt.close(fig)
 
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     """
@@ -186,6 +246,8 @@ def my_parser() -> ap.Namespace:
                         help="Directorio de salida")
     parser.add_argument("-w", "--workers", type=int, required= False, default= 6, 
                         help="Número de hilos")
+    parser.add_argument("-u", "--umbral", type=float, default=70.0,
+                        help="Umbral mínimo de lecturas asignadas en %% (default: 70.0)")
     parser.add_argument("-v", "--verbose", action="store_true", 
                         help="Muestra mensajes DEBUG en consola")
     parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,
@@ -212,13 +274,26 @@ def main():
     setup_logging(args.verbose, args.log_file)
     logger.info("Inicializando módulo de creación de tabla de conteos")
 
-    find_bams()
+    raw_counts_path = os.path.join(args.outdir, "raw_counts.txt")
+    summary_path = f"{raw_counts_path}.summary"
 
-    run_featureCounts()
+    try:
+        find_bams()
 
-    parse_summary()
+        run_featureCounts()
 
-    clean_counts(outdir=args.outdir)
+        assignment_rates = parse_summary(summary_path, umbral=args.umbral)
 
-    if args.graphic:
-        plot_assigment()
+        clean_counts(path_matrix=raw_counts_path, outdir=args.outdir)
+
+        if args.graphic:
+            plot_assignment(assignment_rates, outdir="results/images/", umbral=args.umbral)
+
+        logger.info("Módulo de conteo finalizado correctamente")
+
+    except (FileNotFoundError, RuntimeError, ValueError) as e:
+        logger.error("El pipeline de conteo se detuvo por un error crítico: %s", e)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

@@ -194,7 +194,7 @@ def run_differential_expression(matriz_filtrada:pd.DataFrame, meta:pd.DataFrame)
             etc.) ordenada por padj de menor a mayor.
     """
 
-    dds = DESeqDataSet(countData = matriz_filtrada,
+    dds = DESeqDataSet(countData = matriz_filtrada.T,
                         clinicalData = meta,
                         design = "~ condition"
                         )

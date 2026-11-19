@@ -271,8 +271,8 @@ def filter_and_sort(df_go: pd.DataFrame, grupo: str, top_n: int = 10) -> pd.Data
         return df_g
 
     if "significativo" in df_g.columns and df_g["significativo"].any():
-        df_sub = df_sub[df_sub["significativo"]]
-        logger.debug("Se filtraron %d términos significativos para graficar.", len(df_sub))
+        df_g = df_g[df_g["significativo"]]
+        logger.debug("Se filtraron %d términos significativos para graficar.", len(df_g))
     else:
         logger.debug("No hay términos significativos o falta la columna.")
 
@@ -297,7 +297,7 @@ def barplot(df_top: pd.DataFrame, grupo: str, outdir: str) -> None:
     padj_seguro = np.clip(df_top["padj"].astype(float), 1e-300, 1.0)
 
     norm = plt.Normalize(vmin=padj_seguro.min(), vmax=padj_seguro.max())
-    cmap = plt.cm.get_cmap("RdYlBu")
+    cmap = plt.get_cmap("RdYlBu")
 
     ax.barh(
         y,
@@ -424,6 +424,8 @@ def my_parser() -> ap.Namespace:
                     help="Incluye las gráficas de enriquecimiento GO")
     parser.add_argument("--log_file", default="logs/go_enrichment.log", 
                         help="Ruta para guardar el archivo de log")
+    parser.add_argument( "--top-n", type=int, required=False, default=10,
+        help="Número máximo de términos GO a mostrar en cada gráfica (default: 10)")
     
     return parser.parse_args()
 
@@ -479,6 +481,16 @@ def main() -> None:
 
         df_final.to_csv(ruta_salida, sep="\t", index=False)
         logger.info("Resultados guardados en %s (%d filas)", ruta_salida, len(df_final))
+
+        if args.graphic:
+            logger.info("Gráficas activadas (--graphic).")
+            plot_enrichment(
+                df_go=df_final,
+                outdir=outdir,
+                top_n=args.top_n
+            )
+        else:
+            logger.info("Gráficas desactivadas (--no-graphic).")
 
     except (FileNotFoundError, ValueError, RuntimeError) as e:
         logger.error("Error crítico en el análisis GO: %s", e)

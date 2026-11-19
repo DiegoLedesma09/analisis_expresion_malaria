@@ -87,6 +87,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from inmoose.deseq2 import DESeq, DESeqDataSet
 from sklearn.decomposition import PCA
 
@@ -528,6 +529,62 @@ def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=handlers,
     )
+
+def plot_heatmap(matriz_filtrada: pd.DataFrame, df_clasificado: pd.DataFrame, outdir: str = "results/images/", top_n: int = 25) -> None: 
+    """
+    Genera un Heatmap de los genes más significativos (Top N up y Top N down) 
+    utilizando Seaborn. 
+
+    Args:
+        matriz_filtrada (pd.DataFrame): Matriz de conteos filtrada.
+        df_clasificado (pd.DataFrame): Resultados con la columna "categoria".
+        outdir (str): Directorio de salida para la imagen.
+        top_n (int): Número de genes top a graficar.
+    
+    Returns:
+        None
+    """
+    
+    up = df_clasificado[df_clasificado["categoria"] == "up_resistant"].head(top_n).index
+    down = df_clasificado[df_clasificado["categoria"] == "up_susceptible"].head(top_n).index
+    genes = list(up) + list(down)
+    
+    if not genes:
+        logger.warning("No hay genes significativos para graficar en el Heatmap.")
+        return 
+    
+    sub_matriz = matriz_filtrada.loc[genes]
+    cpm = sub_matriz / matriz_filtrada.sum(axis=0) * 1e6
+    log_cpm = np.log2(cpm + 1)
+
+    std_dev = log_cpm.std(axis=1).replace(0, 1)
+    z_scores = log_cpm.sub(log_cpm.mean(axis=1), axis=0).div(std_dev, axis=0)
+
+    fig, ax = plt.subplots(figsize=(8, max(6, len(genes) * 0.35)))
+    
+    sns.heatmap(
+        z_scores, 
+        cmap="RdBu_r",
+        center=0,
+        vmin=-2, vmax=2,
+        annot=False,
+        linewidths=0.5,
+        cbar_kws={'label': 'Z-score'},
+        ax=ax
+    )
+    
+    # 5. Personalización
+    ax.set_title(f"Expresión de los Top {top_n} genes significativos\n(Sobreexpresados y Subexpresados)", fontsize=12, pad=15)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize=6)
+
+    os.makedirs(outdir, exist_ok=True)
+    output_path = os.path.join(outdir, "heatmap.png")
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    
+    logger.info("Heatmap guardado exitosamente en %s", output_path)
+
 
 def my_parser() -> ap.Namespace:
     """

@@ -573,7 +573,6 @@ def plot_heatmap(matriz_filtrada: pd.DataFrame, df_clasificado: pd.DataFrame, ou
         ax=ax
     )
     
-    # 5. Personalización
     ax.set_title(f"Expresión de los Top {top_n} genes significativos\n(Sobreexpresados y Subexpresados)", fontsize=12, pad=15)
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
     ax.set_yticklabels(ax.get_yticklabels(), fontsize=6)
@@ -611,6 +610,8 @@ def my_parser() -> ap.Namespace:
                         help="Condición de referencia (default: susceptible)")
     parser.add_argument("-vol", "--volcanoplot", action=ap.BooleanOptionalAction, default=True,
                         help="Incluye el grafico de volcano para la comparación de genes (usa --no-volcanoplot para omitirlo)")
+    parser.add_argument("-hm", "--heatmap", action=ap.BooleanOptionalAction, default=True,
+                        help="Incluye el Heatmap de genes significativos (usa --no-heatmap para omitirlo)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Muestra mensajes DEBUG")
     parser.add_argument("--log_file", default="logs/differential_expression.log", help="Archivo de log")
     return parser.parse_args()
@@ -683,6 +684,10 @@ def main():
             plot_volcano_sin_p(df_clasificado, condition1=args.condition1, condition2=args.condition2)
         else:
             plot_volcano(df_clasificado, condition1=args.condition1, condition2=args.condition2)
+    # Se plotea el heatmap de los genes más significativos
+    if args.heatmap:
+        plot_heatmap(matriz_filtrada, df_clasificado, outdir="results/images/", top_n=25)
+
     logger.info("Análisis de expresión diferencial finalizado correctamente")
 
 if __name__ == "__main__":

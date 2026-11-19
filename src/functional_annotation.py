@@ -1,23 +1,52 @@
 """
-funtional_annotation.py
+functional_annotation.py
 ================
 
 Módulo para el análisis de enriquecimiento funcional de Gene Ontology (GO) a
 partir de los resultados de expresión diferencial entre muestras resistentes y
 susceptibles de Anopheles gambiae.
 
+Utiliza la prueba exacta de Fisher (vía goatools) para identificar términos GO
+sobrerrepresentados en las listas de genes sobreexpresados y subexpresados,
+aplicando corrección por pruebas múltiples (Benjamini-Hochberg).
+Genera tablas con los resultados y gráficos de puntos (dotplots) y barras 
+(barplots) de los términos más significativos.
+
+Requisitos:
+    - Python 3.12
+    - Librerías: pandas, numpy, matplotlib, goatools
+    - Archivos de datos: 
+        * Ontología en data/go/go-basic.obo
+        * Anotaciones gene2go en data/go/gene2go (descargado de NCBI)
+    - Tabla de resultados de differential_expression.py.
+
 Funciones principales:
     load_results        Busca y lee la tabla de resultados de expresión diferencial.
     select_genes        Extrae las listas de genes sobreexpresados y subexpresados.
-    load_go_resources   Carga la ontología (.obo) y la anotación gene -> GO, y
-                        registra sus versiones en el log.
+    load_go_resources   Carga la ontología (.obo) y la anotación gene -> GO.
     build_background    Define el conjunto de fondo (universo) con los genes expresados.
-    run_go_enrichment   Ejecuta la prueba exacta de Fisher con corrección múltiple
-                        en los aspectos de GO y devuelve un DataFrame enriquecido.
+    run_go_enrichment   Ejecuta la prueba exacta de Fisher con corrección múltiple. 
     plot_enrichment     Genera la gráfica opcional de los términos más enriquecidos.
     setup_logging       Configura el logging del módulo.
     my_parser           Define y procesa los argumentos de línea de comandos.
     main                Orquesta el flujo completo de enriquecimiento GO.
+
+    Archivos generados:
+    results/go/go_enrichment_results.tsv          Tabla con todos los términos GO evaluados.
+    results/images/go_barplot_<grupo>.png             Gráfico de barras por grupo (up/down).
+    results/images/go_dotplot_<grupo>.png             Gráfico de puntos por grupo (up/down).
+    logs/go_enrichment.log                        Archivo de registro.
+
+Argumentos:
+    -w,   --workdir       Directorio raíz del proyecto (default: .).
+    -i,   --input         Ruta a la tabla de expresión diferencial.
+    --obo                 Ruta al archivo go-basic.obo.
+    --annotation          Ruta al archivo gene2go.
+    -o,   --outdir        Directorio de salida (default: results/go).
+    -t,   --taxid         TaxID de NCBI para A. gambiae (default: 7165).
+    --pvalue              Umbral de significancia ajustado (default: 0.05).
+    --method              Corrección múltiple: 'fdr_bh' o 'bonferroni' (default: fdr_bh).
+    --aspectos            Aspectos de GO a evaluar (BP, MF, CC).
 """
 import argparse as ap
 import logging
@@ -411,6 +440,8 @@ def my_parser() -> ap.Namespace:
                         help="Ruta al archivo gene2go")
     parser.add_argument("-o", "--outdir", required=False, default="results/go",
                         help="Directorio de salida (default: results/go)")
+    parser.add_argument("--images_dir", required=False, default="results/images",
+                        help="Directorio de salida para las imágenes (default: results/images)")
     parser.add_argument("-t", "--taxid", type=int, required=False, default=7165)
     parser.add_argument("--pvalue", type=float, required=False, default=0.05,
                         help="Umbral de significancia para p ajustado (default: 0.05)")
@@ -444,7 +475,7 @@ def main() -> None:
         obo_path = args.obo if os.path.isabs(args.obo) else os.path.join(args.workdir, args.obo)
         anno_path = args.annotation if os.path.isabs(args.annotation) else os.path.join(args.workdir, args.annotation)
         outdir = args.outdir if os.path.isabs(args.outdir) else os.path.join(args.workdir, args.outdir)
-
+        images_dir = args.images_dir if os.path.isabs(args.images_dir) else os.path.join(args.workdir, args.images_dir)
         df_res = load_results(input_path)
         genes_up, genes_down = select_genes(df_res)
         godag, gene2gos = load_go_resources(obo_path, anno_path, taxid=args.taxid)
@@ -486,7 +517,7 @@ def main() -> None:
             logger.info("Gráficas activadas (--graphic).")
             plot_enrichment(
                 df_go=df_final,
-                outdir=outdir,
+                outdir=images_dir,  # <--- Aquí usamos la ruta de imágenes
                 top_n=args.top_n
             )
         else:

@@ -1,4 +1,18 @@
-# Expresión diferencial entre organismos de *Anopheles gambiae*, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
+
+<div align="left">
+<img width="439" height="246" alt="Mosquito_cp" src="https://github.com/user-attachments/assets/80d26d3f-81de-4460-ae09-b20f52c08f29" />
+
+<br>
+<br>
+<img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" height="48" alt="Python" />
+<img src="https://img.shields.io/badge/Conda-44A833?style=for-the-badge&logo=anaconda&logoColor=white" height="48" alt="Conda" />
+<img src="https://img.shields.io/badge/WSL-0078D4?style=for-the-badge&logo=linux&logoColor=white" height="48" alt="WSL" />
+<br>
+<br>
+</div>
+
+# MOSQUITO DGE
+## Expresión diferencial entre organismos de *Anopheles gambiae*, mosquito vector de la malaria, resistentes y susceptibles a insecticidas
 
 Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a deltametrina frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
 
@@ -34,7 +48,7 @@ EJEMPLO:
 proyecto/
 ├── data/            # Datos de ejemplo o archivos pequeños
 ├──── curated/       # Datos curados
-├────── resistent/   # Datos de organismo resistente curados
+├────── resistant/   # Datos de organismo resistente curados
 ├────── susceptible/ # Datos de organismo susceptible curados
 ├─── genome/         # Genoma del organismo
 ├──── raw/           # Datos crudos

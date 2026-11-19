@@ -23,6 +23,9 @@ data/
 # Generated results
 results/
 
+# Log files
+logs/
+
 # Temporary files
 *.log
-*.tmplogs/
+*.out

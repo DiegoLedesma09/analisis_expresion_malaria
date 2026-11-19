@@ -5,9 +5,13 @@ channels:
 dependencies:
   - sra-tools
   - biopython
+  - subread
   - multiqc
   - trim-galore
   - fastqc
   - matplotlib
   - python=3.12
   - inmoose
+  - hisat2=2.2.3
+  - samtools
+

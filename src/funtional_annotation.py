@@ -253,18 +253,45 @@ def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     )
 
 def filter_and_sort(df_go: pd.DataFrame, grupo: str, top_n: int = 10) -> pd.DataFrame:
-    """Filtra un grupo, toma significativos (si existen) y devuelve los top_n por padj, por defecto 10."""
+    """
+    Filtra los términos significativos (si existen) y devuelve los principales
+    ordenados de menor a mayor padj, listos para graficar de arriba hacia abajo.
+
+    Args:
+        df_go (pd.DataFrame) -> DataFrame con resultados de enriquecimiento GO.
+        grupo (str) -> Nombre del grupo a filtrar.
+        top_n (int) -> Número máximo de términos a conservar (default: 10).
+
+    Returns:
+        df_top (pd.DataFrame) -> DataFrame filtrado y ordenado para el eje Y.
+    """
     df_g = df_go[df_go["grupo"] == grupo].copy()
     if df_g.empty:
+        logger.debug("Se recibió un DataFrame vacío para filtrar y ordenar.")
         return df_g
 
     if "significativo" in df_g.columns and df_g["significativo"].any():
-        df_g = df_g[df_g["significativo"]]
+        df_sub = df_sub[df_sub["significativo"]]
+        logger.debug("Se filtraron %d términos significativos para graficar.", len(df_sub))
+    else:
+        logger.debug("No hay términos significativos o falta la columna.")
 
     return df_g.sort_values("padj", ascending=True).head(top_n).iloc[::-1]
 
 def barplot(df_top: pd.DataFrame, grupo: str, outdir: str) -> None:
-    """Genera el barplot de un grupo: X = k_estudio, Y = termino, color = padj."""
+    """
+    Genera y guarda un barplot horizontal de enriquecimiento GO (X: k_estudio,
+    Y: termino, color: padj).
+
+    Args:
+        df_top (pd.DataFrame) -> Tabla con los términos GO seleccionados.
+        grupo (str) -> Nombre del grupo a filtrar.
+        outdir (str) -> Directorio donde se guardará la figura.
+
+    Returns:
+        None
+    """
+    logger.debug("Generando barplot '%s' con %d términos en %s", grupo, len(df_top), outdir)
     fig, ax = plt.subplots(figsize=(8, 6))
     y = np.arange(len(df_top))
     padj_seguro = np.clip(df_top["padj"].astype(float), 1e-300, 1.0)
@@ -299,7 +326,19 @@ def barplot(df_top: pd.DataFrame, grupo: str, outdir: str) -> None:
     logger.info("Barplot guardado en %s", ruta)
 
 def dotplot(df_top: pd.DataFrame, grupo: str, outdir: str) -> None:
-    """Genera el dotplot de un grupo: X = gene_ratio, Y = termino, tamaño = k_estudio, color = padj."""
+    """
+    Genera y guarda un dotplot de enriquecimiento GO (X: gene_ratio, Y: termino,
+    tamaño: k_estudio, color: padj).
+
+    Args:
+        df_top (pd.DataFrame) -> Tabla con los términos GO seleccionados.
+        grupo (str) -> Nombre del grupo a filtrar.
+        outdir (str) -> Directorio donde se guardará la figura.
+
+    Returns:
+        None
+    """
+    logger.debug("Generando dotplot '%s' con %d términos en %s", grupo, len(df_top), outdir)
     fig, ax = plt.subplots(figsize=(8, 6))
     y = np.arange(len(df_top))
     padj_seguro = np.clip(df_top["padj"].astype(float), 1e-300, 1.0)
@@ -331,12 +370,21 @@ def dotplot(df_top: pd.DataFrame, grupo: str, outdir: str) -> None:
     logger.info("Dotplot guardado en %s", ruta)
 
 def plot_enrichment(df_go: pd.DataFrame, outdir: str, top_n: int = 10) -> None:
-    """Genera un dotplot y un barplot por cada grupo presente en df_go."""
+    """
+    Genera dotplots y barplots por grupo experimental.
+
+    Args:
+        df_go (pd.DataFrame): Tabla combinada devuelta por el análisis de enriquecimiento GO.
+        outdir (str): Directorio de salida donde se guardarán las figuras.
+        top_n (int): Número máximo de términos a mostrar por gráfica (default: 10).
+    """
     if df_go.empty:
         logger.warning("No hay resultados de GO para graficar.")
         return
 
     os.makedirs(outdir, exist_ok=True)
+    logger.info("Iniciando generación de gráficas GO (top_n=%d)", top_n)
+    
     for grupo in df_go["grupo"].dropna().unique():
         df_top = filter_and_sort(df_go, grupo=grupo, top_n=top_n)
         if df_top.empty:

@@ -4,6 +4,9 @@ import os
 import sys
 
 import pandas as pd
+from goatools.anno.genetogo_reader import Gene2GoReader
+from goatools.go_enrichment import GOEnrichmentStudy
+from goatools.obo_parser import GODag
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +54,29 @@ def select_genes(df_res: pd.DataFrame, lfc_umbral: float = 1.0, padj_umbral: flo
 
     return genes_up, genes_down
 
+def load_go_resources(obo_path: str, gene2go_path: str, taxid:int):
+    """
+    Carga la ontología (.obo) y la anotación gene -> GO.
+
+    Args:
+        obo_path (str) -> Ruta al archivo descargado en el repositorio .obo
+        gene2go_path (str) -> Ruta al archivo gene2go en el repositorio
+        taxid (int) -> Identificador de organismo según su taxid de NCBI
+
+    Returns:
+        godag (str) -> Archivo .obo de Gene Ontology
+        gene2gos (str) -> Archivo gene2gos de Gene Ontology
+
+    """
+    logger.info("Cargando ontología desde %s", obo_path)
+    godag = GODag(obo_path, prt=sys.stdout)
+    
+    logger.info("Cargando anotaciones desde %s", gene2go_path)
+    # Gene2GoReader para leer anotaciones formato gene2go (taxid 7165 para A. gambiae)
+    anno_reader = Gene2GoReader(gene2go_path, taxid=taxid)
+    gene2gos = anno_reader.get_ns2gene2gos()
+    return godag, gene2gos
+
 
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     """
@@ -86,6 +112,7 @@ def my_parser() -> ap.Namespace:
                         help="Directorio de salida")
     parser.add_argument("-w", "--workers", type=int, required= False, default= 6, 
                         help="Número de hilos")
+    parser.add_argument("-t", "--taxid", type=int, required=False, default=7165)
     parser.add_argument("-v", "--verbose", action="store_true", 
                         help="Muestra mensajes DEBUG en consola")
     parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,

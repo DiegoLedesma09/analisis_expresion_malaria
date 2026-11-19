@@ -1,6 +1,6 @@
 """
-counts_features.py
-==============
+count_features.py
+=================
 
 Módulo para la creación de la tabla de conteos de los genes por muestra a partir de los
 archivos .bam generados por el módulo de alineamiento (align_reads.py) creados por HISAT2.
@@ -8,30 +8,30 @@ archivos .bam generados por el módulo de alineamiento (align_reads.py) creados 
 Usa featureCounts para hacer la matriz de conteos y procede a limpiar el resultado para
 regresar una matriz de genes X muestras.
 
-Finalmente, regresa un plot que representa cuántas muestras asociadas tiene cada gen.
+Finalmente, regresa un plot con el porcentaje de lecturas asignadas a genes por muestra.
 
 Requisitos:
     - Archivos .bam generados por HISAT2 (align_reads.py module).
     - Archivo .gtf extraído desde NCBI (download_data.py module).
+    - featureCounts >= 2.0.2 (necesario para --countReadPairs).
     - Ambiente de Conda (malaria_env) activado.
 
 Funciones principales:
-    find_bams           Localiza los BAM por grupo.
-    run_featurecounts   Ejecuta featureCounts para la creación de la matriz de conteos
-    parse_summary       Lee el .summary y devuelve el porcentaje de lecturas asignadas por muestra.
-    clean_counts        Deja una matriz limpia (genes x muestras)
+    find_bams            Localiza los BAM por grupo.
+    run_featureCounts    Ejecuta featureCounts para la creación de la matriz de conteos.
+    parse_summary        Lee el .summary y devuelve el porcentaje de lecturas asignadas por muestra.
+    clean_counts         Deja una matriz limpia (genes x muestras).
     plot_assignment      Gráfica opcional de lecturas asignadas por muestra.
-    my_parser           Define los argumentos de línea de comandos.
-    setup_logging       Configura el logging del módulo.
-    main                Ejecuta el flujo completo.
+    setup_logging        Configura el logging del módulo.
+    my_parser            Define los argumentos de línea de comandos.
+    main                 Ejecuta el flujo completo.
 
 Archivos generados:
     data/counts/raw_counts.txt                  Salida cruda de featureCounts.
     data/counts/raw_counts.txt.summary          Resumen estadístico de asignación.
-    data/counts/counts_matrix.tsv               Matriz limpia de conteos (genes x muestras).
-    data/counts/samples_metadata.tsv            Tabla de metadatos (muestra y condición).
+    data/counts/clean/clean_matrix.tsv          Matriz limpia de conteos (genes x muestras).
     results/images/assignment_proportion.png    Gráfica de lecturas asignadas por muestra.
-    logs/count_features.log                     Archivo de registro de ejecución.
+    logs/feature_counts.log                     Archivo de registro de ejecución.
 
 Argumentos:
     -d,   --data_dir    Directorio raíz con los BAM por condición (default: data/aligned/).
@@ -39,13 +39,14 @@ Argumentos:
     -c1,  --condition1  Condición 1 (default: resistant).
     -c2,  --condition2  Condición 2 (default: susceptible).
     -s,   --strand      Especificidad de cadena: 0 (unstranded), 1 (forward), 2 (reverse) (default: 0).
-    -w,  --workers      Número de hilos para featureCounts (default: 6).
-    -o,  --outdir       Directorio de salida (default: results).
+    -w,   --workers     Número de hilos para featureCounts (default: 6).
+    -o,   --outdir      Directorio de salida de los conteos (default: data/counts/).
+    -i,   --img_dir     Directorio de salida de la imagen (default: results/images/).
     -u,   --umbral      Umbral mínimo de lecturas asignadas en % (default: 70.0).
-    -v,  --verbose      Muestra mensajes DEBUG.
-    --log_file          Ruta del archivo de log.
-    -g,  --graphic      Incluye el gráfico comparativo del conteo (default).
-         --no-graphic   Omite el gráfico comparativo del conteo.
+    -v,   --verbose     Muestra mensajes DEBUG.
+          --log_file    Ruta del archivo de log (default: logs/feature_counts.log).
+    -g,   --graphic     Incluye el gráfico de lecturas asignadas (default).
+          --no-graphic  Omite el gráfico de lecturas asignadas.
 
 Uso:
     python src/count_features.py -gtf data/genome/genome_Anopheles_gambiae.gtf -v
@@ -58,24 +59,22 @@ import os
 import subprocess
 import sys
 
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-def find_bams(data_dir:str, grupo: str) -> list:
-    """
-    Localiza los archivos BAM ordenados e indexados de un grupo específico.
 
-    Args: 
-        data_dir (str): Directorio donde están los archivos BAM (ej. "data/aligned/"). 
+def find_bams(data_dir: str, grupo: str) -> list:
+    """
+    Localiza los archivos BAM ordenados de un grupo específico.
+
+    Args:
+        data_dir (str): Directorio donde están los archivos BAM (ej. "data/aligned/").
         grupo (str): Nombre del grupo a buscar.
-    
+
     Returns:
-        list: Lista con las rutas de los archivos .bam encontrados. 
+        list: Lista con las rutas de los archivos .bam encontrados.
     """
     logger.info("Buscando archivos BAM en el directorio %s para el grupo %s", data_dir, grupo)
 
@@ -90,10 +89,9 @@ def find_bams(data_dir:str, grupo: str) -> list:
         logger.error("No se encontraron archivos .bam en %s", dir_grupo)
         raise FileNotFoundError(f"No se encontraron archivos .bam en {dir_grupo}")
 
-    else:
-        logger.info("Se encontraron %d archivos BAM en el grupo '%s'", len(bam_files), grupo)
-        
+    logger.info("Se encontraron %d archivos BAM en el grupo '%s'", len(bam_files), grupo)
     return bam_files
+
 
 def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers: int, strand: int = 0) -> None:
     """
@@ -110,15 +108,15 @@ def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers:
         None
     """
     if not bam_files:
-            logger.error("La lista de BAMs está vacía. No se puede ejecutar featureCounts.")
-            raise ValueError("No se proporcionaron archivos BAM para contar.")
-    
+        logger.error("La lista de BAMs está vacía. No se puede ejecutar featureCounts.")
+        raise ValueError("No se proporcionaron archivos BAM para contar.")
+
     if not os.path.exists(gtf_path):
-            logger.error("No se encontró el archivo GTF en: %s", gtf_path)
-            raise FileNotFoundError(f"Falta el GTF: {gtf_path}")
-    
+        logger.error("No se encontró el archivo GTF en: %s", gtf_path)
+        raise FileNotFoundError(f"Falta el GTF: {gtf_path}")
+
     os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
-    
+
     command = [
         "featureCounts",
         "-T", str(workers),
@@ -129,17 +127,24 @@ def run_featureCounts(bam_files: list, gtf_path: str, output_file: str, workers:
         "-g", "gene_id",
         "-a", gtf_path,
         "-o", output_file,
-        *bam_files
+        *bam_files,
     ]
-    
+
     logger.info("Ejecutando featureCounts con %d hilos", workers)
-    
+
     try:
-        subprocess.run(command, check=True, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(command, check=True, stderr=subprocess.PIPE, text=True)
+        logger.debug("Salida (stderr) de featureCounts:\n%s", result.stderr)
         logger.info("featureCounts completado. Resultados guardados en %s", output_file)
+    except FileNotFoundError as e:
+        logger.error("No se encontró el ejecutable featureCounts en el PATH")
+        raise RuntimeError(
+            "featureCounts no está disponible en el PATH. ¿Activaste el ambiente malaria_env?"
+        ) from e
     except subprocess.CalledProcessError as e:
         logger.error("Error al ejecutar featureCounts: %s", e.stderr)
         raise RuntimeError(f"Fallo en featureCounts: {e.stderr}") from e
+
 
 def parse_summary(summary_file: str, umbral: float = 70.0) -> dict[str, float]:
     """
@@ -198,37 +203,43 @@ def parse_summary(summary_file: str, umbral: float = 70.0) -> dict[str, float]:
                 umbral,
             )
 
-    return assignment_rates 
+    return assignment_rates
+
 
 def clean_counts(raw_counts_file: str, outdir: str = "data/counts/clean") -> pd.DataFrame:
     """
-    Limpia la matriz de conteos realizada por featureCounts, dejando una matriz (genes x muestras)
+    Limpia la matriz de conteos realizada por featureCounts, dejando una matriz (genes x muestras).
 
     Args:
-        raw_counts_file (str) -> Ruta a la matriz de conteos cruda realizada por featureCounts
-        outdir (str) -> Ruta hacia el directorio de salida
+        raw_counts_file (str): Ruta a la matriz de conteos cruda realizada por featureCounts.
+        outdir (str): Ruta hacia el directorio de salida.
 
     Returns:
-        clean_matrix (pd.DataFrame) -> Matriz de conteos limpia (genes x muestras)
+        pd.DataFrame: Matriz de conteos limpia (genes x muestras).
     """
-
     logger.info("Iniciando limpieza de la matriz de conteos generada por featureCounts")
 
     if not os.path.exists(raw_counts_file):
         logger.error("No se encontró la matriz cruda: %s", raw_counts_file)
         raise FileNotFoundError(f"Matriz faltante: {raw_counts_file}")
 
-    df = pd.read_csv(raw_counts_file, sep="\t", comment="#").set_index("Geneid")
-    clean_matrix = df.drop(columns=["Chr", "Start", "End", "Strand", "Length"])
+    try:
+        df = pd.read_csv(raw_counts_file, sep="\t", comment="#").set_index("Geneid")
+        clean_matrix = df.drop(columns=["Chr", "Start", "End", "Strand", "Length"])
+    except KeyError as e:
+        logger.error("Formato inesperado en %s: falta la columna %s", raw_counts_file, e)
+        raise ValueError(f"Formato inesperado en la matriz cruda {raw_counts_file}: falta {e}") from e
+
     clean_matrix.columns = [os.path.basename(c).removesuffix(".bam") for c in clean_matrix.columns]
 
     os.makedirs(outdir, exist_ok=True)
     output_file = os.path.join(outdir, "clean_matrix.tsv")
     clean_matrix.to_csv(output_file, sep="\t")
 
-    logger.info("Se ha realizado la limpieza de la matriz realizada por featureCounts y se ha guardado en %s", output_file)
+    logger.info("Matriz limpia guardada en %s", output_file)
 
     return clean_matrix
+
 
 def plot_assignment(assignment_rates: dict[str, float], outdir: str = "results/images/", umbral: float = 70.0) -> None:
     """
@@ -293,13 +304,14 @@ def plot_assignment(assignment_rates: dict[str, float], outdir: str = "results/i
     finally:
         plt.close(fig)
 
+
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     """
     Configura el logging del módulo: consola (stdout) y, opcionalmente, archivo.
 
     Args:
-        verbose (bool) -> Si es True, muestra mensajes DEBUG
-        log_file (str | None) -> Ruta del archivo de log (None para no guardarlo)
+        verbose (bool): Si es True, muestra mensajes DEBUG.
+        log_file (str | None): Ruta del archivo de log (None para no guardarlo).
 
     Returns:
         None
@@ -315,10 +327,11 @@ def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
         handlers=handlers,
     )
 
+
 def my_parser() -> ap.Namespace:
     """
-    Define y procesa los argumentos de línea de comandos requeridos para el alineamiento.
-    
+    Define y procesa los argumentos de línea de comandos requeridos para la cuantificación.
+
     Returns:
         ap.Namespace: Argumentos indicados por el usuario.
     """
@@ -334,31 +347,34 @@ def my_parser() -> ap.Namespace:
                         help="Condición 2 de los datos de expresión (default: susceptible)")
     parser.add_argument("-s", "--strand", type=int, choices=[0, 1, 2], default=0,
                         help="Especificidad de cadena: 0 (unstranded), 1 (forward), 2 (reverse) (default: 0)")
-    parser.add_argument("-o", "--outdir", required=False, default="data/counts/", 
-                        help="Directorio de salida")
-    parser.add_argument("-w", "--workers", type=int, required= False, default= 6, 
-                        help="Número de hilos")
+    parser.add_argument("-o", "--outdir", required=False, default="data/counts/",
+                        help="Directorio de salida de los conteos (default: data/counts/)")
+    parser.add_argument("-i", "--img_dir", required=False, default="results/images/",
+                        help="Directorio de salida de la imagen (default: results/images/)")
+    parser.add_argument("-w", "--workers", type=int, required=False, default=6,
+                        help="Número de hilos (default: 6)")
     parser.add_argument("-u", "--umbral", type=float, default=70.0,
                         help="Umbral mínimo de lecturas asignadas en %% (default: 70.0)")
-    parser.add_argument("-v", "--verbose", action="store_true", 
+    parser.add_argument("-v", "--verbose", action="store_true",
                         help="Muestra mensajes DEBUG en consola")
     parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,
-                    help="Incluye el grafico de la distribución de muestras asignadas")
-    parser.add_argument("--log_file", default="logs/feature_counts.log", 
+                        help="Incluye el gráfico de lecturas asignadas por muestra")
+    parser.add_argument("--log_file", default="logs/feature_counts.log",
                         help="Ruta para guardar el archivo de log")
-    
+
     return parser.parse_args()
+
 
 def main():
     """
     Ejecuta el flujo completo de creación de la matriz de conteos.
 
     Pasos, en orden:
-        1. Encuentra los archivos .bam asociados a las lecturas
+        1. Encuentra los archivos .bam asociados a las lecturas.
         2. Corre featureCounts y crea la matriz de conteos.
-        3. Lee el archivo .summary y devuelve el porcentaje de lecturas asociadas por muestra.
+        3. Lee el archivo .summary y devuelve el porcentaje de lecturas asignadas por muestra.
         4. Limpia la matriz de conteos regresando una matriz de genes x muestras.
-        5. Si --graphic está activo, grafica la distribución de lecturas asociadas por muestra
+        5. Si --graphic está activo, grafica el porcentaje de lecturas asignadas por muestra.
 
     Los argumentos se leen de la línea de comandos mediante my_parser().
     """
@@ -384,13 +400,14 @@ def main():
         clean_counts(raw_counts_path, outdir=os.path.join(args.outdir, "clean"))
 
         if args.graphic:
-            plot_assignment(assignment_rates, outdir="results/images/", umbral=args.umbral)
+            plot_assignment(assignment_rates, outdir=args.img_dir, umbral=args.umbral)
 
         logger.info("Módulo de conteo finalizado correctamente")
 
     except (FileNotFoundError, RuntimeError, ValueError) as e:
         logger.error("El pipeline de conteo se detuvo por un error crítico: %s", e)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

@@ -77,6 +77,18 @@ def load_go_resources(obo_path: str, gene2go_path: str, taxid:int):
     gene2gos = anno_reader.get_ns2gene2gos()
     return godag, gene2gos
 
+def build_background(df_res: pd.DataFrame) -> set:
+    """
+    Define el conjunto de fondo (universo) con los genes expresados evaluados.
+
+    Args:
+        df_res (pd.DataFrame) -> Dataframe representativo de los resultados
+
+    Returns:
+        background (set) -> Set del universo sobre el que va a funcionar GO
+    """
+    return set(df_res.index.tolist())
+
 
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     """

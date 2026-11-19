@@ -10,7 +10,11 @@ cada condición experimental.
 
 El módulo realiza lo siguiente:
 
-1. 
+1. Lee la tabla de expresión diferencial y separa los genes en sobreexpresados (up_resistant) y subexpresados (up_susceptible) según los umbrales de padj y log_2FoldChange.
+2. Carga la estructura jerárquica de Gene Ontology (go-basic.obo) y las asociaciones gen -> GO del organismo filtradas por taxid (7165 para Anopheles gambiae).
+3. Construye el conjunto de fondo (universo estadístico) utilizando todos los genes expresados evaluados en el análisis diferencial.
+4. Ejecuta la prueba exacta de Fisher de una cola con propagación jerárquica (True Path Rule) y corrección por pruebas múltiples (fdr_bh o bonferroni) de manera independiente para up_resistant y up_susceptible en los aspectos seleccionados (BP, MF, CC), emitiendo una advertencia en el registro si alguna lista tiene menos de 3 genes anotados.
+5. Consolida los términos sobrerrepresentados en una tabla TSV y, si la opción --graphic está activa, genera gráficas dotplot y barplot con los términos principales de cada grupo.
 
 ## Requisitos
 
@@ -116,19 +120,19 @@ flowchart TD
 
 ## Ejemplos
 
-1. **Ejecución básica desde la raíz del proyecto con parámetros por defecto**
+1. Ejecución básica desde la raíz del proyecto con parámetros por defecto
 
 ```bash
 python src/functional_annotation.py -v
 ```
 
-2. **Ejecución evaluando únicamente Proceso Biológico (`BP`) y Función Molecular (`MF`), mostrando los Top 15 términos en las gráficas**
+2. Ejecución evaluando únicamente Proceso Biológico (`BP`) y Función Molecular (`MF`), mostrando los Top 15 términos en las gráficas
 
 ```bash
 python src/functional_annotation.py --aspectos BP MF --top-n 15 -v
 ```
 
-3. **Ejecución sin generar gráficas y ajustando el umbral de significancia**
+3. Ejecución sin generar gráficas y ajustando el umbral de significancia
 
 ```bash
 python src/functional_annotation.py --pvalue 0.10 --no-graphic -v

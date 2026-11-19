@@ -517,7 +517,7 @@ def main() -> None:
             logger.info("Gráficas activadas (--graphic).")
             plot_enrichment(
                 df_go=df_final,
-                outdir=images_dir,  # <--- Aquí usamos la ruta de imágenes
+                outdir=images_dir,
                 top_n=args.top_n
             )
         else:

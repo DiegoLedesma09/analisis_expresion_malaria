@@ -53,9 +53,9 @@ import logging
 import os
 import sys
 
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from goatools.anno.genetogo_reader import Gene2GoReader
 from goatools.go_enrichment import GOEnrichmentStudyNS
 from goatools.obo_parser import GODag
@@ -64,7 +64,7 @@ logger = logging.getLogger(__name__)
 
 def load_results(ruta_resultados: str) -> pd.DataFrame:
     """
-    Busca y lee la tabla de resultados de expresión diferencial
+    Busca y lee la tabla de resultados de expresión diferencial (separada por comas)
 
     Args:
         ruta_resultados (str) -> Ruta hacia el archivo de la tabla de resultados realizada
@@ -76,35 +76,50 @@ def load_results(ruta_resultados: str) -> pd.DataFrame:
     if not os.path.exists(ruta_resultados):
         logger.error("No se encontró el archivo de resultados %s", ruta_resultados)
         raise FileNotFoundError(f"No se encontró el archivo de resultados: {ruta_resultados}")
-    df_res = pd.read_csv(ruta_resultados, sep="\t", index_col=0)
+    df_res = pd.read_csv(ruta_resultados, sep=",", index_col=0)
+
+    # gene2go usa el GeneID de NCBI como entero: LOC1276231 -> 1276231
+    es_loc = df_res.index.astype(str).str.fullmatch(r"LOC\d+")
+    n_sin_loc = int((~es_loc).sum())
+    if n_sin_loc:
+        ejemplos = df_res.index[~es_loc][:5].tolist()
+        logger.warning("%d genes no tienen formato LOC<número> y no se pueden mapear a GeneID "
+                       "(ejemplos: %s); quedarán sin anotación GO.", n_sin_loc, ejemplos)
+    df_res.index = [int(str(g)[3:]) if loc else g for g, loc in zip(df_res.index, es_loc)]
     return df_res
 
 
-def select_genes(df_res: pd.DataFrame, lfc_umbral: float = 1.0, padj_umbral: float = 0.05):
+def select_genes(df_res: pd.DataFrame, condition1: str = "resistant", condition2: str = "susceptible"):
     """
-    Extrae las listas de genes sobreexpresados (up) y subexpresados (down) del DataFrame
-    representativo de los resultados generados por el módulo diferential_expression.py
+    Extrae las listas de genes sobreexpresados en cada condición a partir de la
+    columna 'categoria' generada por diferential_expression.py.
 
     Args:
         df_res (pd.DataFrame) -> Dataframe representativo de los resultados
-        lfc_unmbral (float) -> Valor de corte mínimo de Log2FoldChange para determinar genes
-            sobreexpresados y subexpresados
-        padj_umbral (float) -> Valor de corte mínimo del padj para determinar genes sobrexpresados
-            y subexpresados
+        condition1 (str) -> Condición cuya categoría es 'up_{condition1}'
+        condition2 (str) -> Condición cuya categoría es 'up_{condition2}'
 
     Returns:
-        genes_up (pd.DataFrame) -> DataFrame con los genes sobreexpresados
-        genes_down (pd.DataFrame) -> DataFrame con los genes subexpresados
+        genes_up1 (list) -> Genes sobreexpresados en condition1
+        genes_up2 (list) -> Genes sobreexpresados en condition2
     """
-    if 'padj' in df_res.columns and df_res['padj'].notna().any():
-        sig = df_res[(df_res['padj'].fillna(1) < padj_umbral) & (df_res['log2FoldChange'].abs() >= lfc_umbral)]
-    else:
-        sig = df_res[df_res['log2FoldChange'].abs() >= lfc_umbral]
-    
-    genes_up = sig[sig['log2FoldChange'] > 0].index.tolist()
-    genes_down = sig[sig['log2FoldChange'] < 0].index.tolist()
+    if "categoria" not in df_res.columns:
+        raise ValueError("La tabla no tiene la columna 'categoria'")
 
-    return genes_up, genes_down
+    if "padj" not in df_res.columns or df_res["padj"].isna().all():
+        logger.warning("Tabla sin padj: los genes se seleccionaron solo por corte de LFC; "
+                       "el enriquecimiento GO es exploratorio.")
+
+    cat1, cat2 = f"up_{condition1}", f"up_{condition2}"
+    categorias = set(df_res["categoria"].dropna().unique())
+    for cat in (cat1, cat2):
+        if cat not in categorias:
+            logger.warning("La categoría '%s' no aparece en la tabla (categorías: %s)",
+                           cat, sorted(categorias))
+
+    genes_up1 = df_res.index[df_res["categoria"] == cat1].tolist()
+    genes_up2 = df_res.index[df_res["categoria"] == cat2].tolist()
+    return genes_up1, genes_up2
 
 def load_go_resources(obo_path: str, gene2go_path: str, taxid:int):
     """
@@ -156,7 +171,7 @@ def run_go_enrichment(genes_estudio: list[str] | set[str],
 
     Args:
         genes_estudio (list[str] | set[str]) -> Lista o conjunto de genes
-            diferencialmente expresados (ej. genes_up o genes_down).
+            diferencialmente expresados (ej. genes_up1 o genes_up2).
         background (set) -> Conjunto de fondo (universo) devuelto por
             build_background.
         godag (GODag) -> Ontología GO cargada desde go-basic.obo.
@@ -258,28 +273,6 @@ def run_go_enrichment(genes_estudio: list[str] | set[str],
         int(df_go["significativo"].sum()),
     )
     return df_go
-
-def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
-    """
-    Configura el logging del módulo: consola (stdout) y, opcionalmente, archivo.
-
-    Args:
-        verbose (bool) -> Si es True, muestra mensajes DEBUG
-        log_file (str | None) -> Ruta del archivo de log (None para no guardarlo)
-
-    Returns:
-        None
-    """
-    handlers = [logging.StreamHandler(sys.stdout)]
-    if log_file:
-        os.makedirs(os.path.dirname(log_file) or ".", exist_ok=True)
-        handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
-
-    logging.basicConfig(
-        level=logging.DEBUG if verbose else logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        handlers=handlers,
-    )
 
 def filter_and_sort(df_go: pd.DataFrame, grupo: str, top_n: int = 10) -> pd.DataFrame:
     """
@@ -422,6 +415,28 @@ def plot_enrichment(df_go: pd.DataFrame, outdir: str, top_n: int = 10) -> None:
         dotplot(df_top, grupo=grupo, outdir=outdir)
         barplot(df_top, grupo=grupo, outdir=outdir)
 
+def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
+    """
+    Configura el logging del módulo: consola (stdout) y, opcionalmente, archivo.
+
+    Args:
+        verbose (bool) -> Si es True, muestra mensajes DEBUG
+        log_file (str | None) -> Ruta del archivo de log (None para no guardarlo)
+
+    Returns:
+        None
+    """
+    handlers = [logging.StreamHandler(sys.stdout)]
+    if log_file:
+        os.makedirs(os.path.dirname(log_file) or ".", exist_ok=True)
+        handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+
+    logging.basicConfig(
+        level=logging.DEBUG if verbose else logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=handlers,
+    )
+
 def my_parser() -> ap.Namespace:
     """
     Define y procesa los argumentos de línea de comandos requeridos para el alineamiento.
@@ -440,9 +455,11 @@ def my_parser() -> ap.Namespace:
                         help="Ruta al archivo gene2go")
     parser.add_argument("-o", "--outdir", required=False, default="results/go",
                         help="Directorio de salida (default: results/go)")
-    parser.add_argument("--images_dir", required=False, default="results/images",
-                        help="Directorio de salida para las imágenes (default: results/images)")
     parser.add_argument("-t", "--taxid", type=int, required=False, default=7165)
+    parser.add_argument("--condition1", default="resistant",
+                        help="Primera condición; se busca la categoría 'up_<condition1>' (default: resistant)")
+    parser.add_argument("--condition2", default="susceptible",
+                        help="Segunda condición; se busca la categoría 'up_<condition2>' (default: susceptible)")
     parser.add_argument("--pvalue", type=float, required=False, default=0.05,
                         help="Umbral de significancia para p ajustado (default: 0.05)")
     parser.add_argument("--method", choices=["fdr_bh", "bonferroni"], default="fdr_bh",
@@ -460,10 +477,27 @@ def my_parser() -> ap.Namespace:
     
     return parser.parse_args()
 
-
 def main() -> None:
     """
     Orquesta el flujo completo de enriquecimiento funcional con Gene Ontology.
+
+    Pasos, en orden:
+        1. Parsea los argumentos de línea de comandos y configura el registro de logs.
+        2. Resuelve las rutas de entrada y salida (relativas a workdir o absolutas)
+           y carga los resultados de expresión diferencial.
+        3. Selecciona los genes regulados al alza por condición, carga los recursos
+           GO (.obo y anotación) y construye el universo de genes (background).
+        4. Ejecuta el enriquecimiento GO para cada condición y consolida los
+           resultados no vacíos en un único DataFrame.
+        5. Guarda la tabla consolidada en go_enrichment_results.tsv dentro de outdir
+           (con el esquema de columnas definido si no hubo términos enriquecidos).
+        6. Si --graphic está activo, genera las gráficas de enriquecimiento; en caso
+           contrario, registra que las gráficas están desactivadas.
+
+    Los argumentos se leen de la línea de comandos mediante my_parser().
+
+    Returns:
+        None
     """
     args = my_parser()
     log_path = args.log_file if os.path.isabs(args.log_file) else os.path.join(args.workdir, args.log_file)
@@ -475,14 +509,15 @@ def main() -> None:
         obo_path = args.obo if os.path.isabs(args.obo) else os.path.join(args.workdir, args.obo)
         anno_path = args.annotation if os.path.isabs(args.annotation) else os.path.join(args.workdir, args.annotation)
         outdir = args.outdir if os.path.isabs(args.outdir) else os.path.join(args.workdir, args.outdir)
-        images_dir = args.images_dir if os.path.isabs(args.images_dir) else os.path.join(args.workdir, args.images_dir)
+
         df_res = load_results(input_path)
-        genes_up, genes_down = select_genes(df_res)
+        genes_up1, genes_up2 = select_genes(df_res, args.condition1, args.condition2)
         godag, gene2gos = load_go_resources(obo_path, anno_path, taxid=args.taxid)
         background = build_background(df_res)
 
         tablas = []
-        for nombre, lista in [("up_resistant", genes_up), ("up_susceptible", genes_down)]:
+        for nombre, lista in [(f"up_{args.condition1}", genes_up1),
+                              (f"up_{args.condition2}", genes_up2)]:
             df_go = run_go_enrichment(
                 genes_estudio=lista,
                 background=background,
@@ -517,7 +552,7 @@ def main() -> None:
             logger.info("Gráficas activadas (--graphic).")
             plot_enrichment(
                 df_go=df_final,
-                outdir=images_dir,
+                outdir=outdir,
                 top_n=args.top_n
             )
         else:

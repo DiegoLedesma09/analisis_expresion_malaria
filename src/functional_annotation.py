@@ -57,7 +57,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from goatools.anno.genetogo_reader import Gene2GoReader
-from goatools.go_enrichment import GOEnrichmentStudyNS
+from goatools.goea.go_enrichment_ns import GOEnrichmentStudyNS
 from goatools.obo_parser import GODag
 
 logger = logging.getLogger(__name__)
@@ -141,7 +141,7 @@ def load_go_resources(obo_path: str, gene2go_path: str, taxid:int):
     logger.info("Cargando anotaciones desde %s", gene2go_path)
     # Gene2GoReader para leer anotaciones formato gene2go (taxid 7165 para A. gambiae)
     anno_reader = Gene2GoReader(gene2go_path, taxid=taxid)
-    gene2gos = anno_reader.get_ns2gene2gos()
+    gene2gos = anno_reader.get_ns2assc()
     return godag, gene2gos
 
 def build_background(df_res: pd.DataFrame) -> set:

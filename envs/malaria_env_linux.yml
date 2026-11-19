@@ -14,4 +14,5 @@ dependencies:
   - inmoose
   - hisat2=2.2.3
   - samtools
+  - goatools
 

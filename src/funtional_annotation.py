@@ -25,6 +25,8 @@ import os
 import sys
 
 import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 from goatools.anno.genetogo_reader import Gene2GoReader
 from goatools.go_enrichment import GOEnrichmentStudyNS
 from goatools.obo_parser import GODag
@@ -249,6 +251,99 @@ def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=handlers,
     )
+
+def filter_and_sort(df_go: pd.DataFrame, grupo: str, top_n: int = 10) -> pd.DataFrame:
+    """Filtra un grupo, toma significativos (si existen) y devuelve los top_n por padj, por defecto 10."""
+    df_g = df_go[df_go["grupo"] == grupo].copy()
+    if df_g.empty:
+        return df_g
+
+    if "significativo" in df_g.columns and df_g["significativo"].any():
+        df_g = df_g[df_g["significativo"]]
+
+    return df_g.sort_values("padj", ascending=True).head(top_n).iloc[::-1]
+
+def barplot(df_top: pd.DataFrame, grupo: str, outdir: str) -> None:
+    """Genera el barplot de un grupo: X = k_estudio, Y = termino, color = padj."""
+    fig, ax = plt.subplots(figsize=(8, 6))
+    y = np.arange(len(df_top))
+    padj_seguro = np.clip(df_top["padj"].astype(float), 1e-300, 1.0)
+
+    norm = plt.Normalize(vmin=padj_seguro.min(), vmax=padj_seguro.max())
+    cmap = plt.cm.get_cmap("RdYlBu")
+
+    ax.barh(
+        y,
+        df_top["k_estudio"].astype(float),
+        color=cmap(norm(padj_seguro)),
+        edgecolor="black",
+        linewidth=0.5,
+    )
+
+    etiquetas = [f"{row['termino']} ({row['aspecto']})" for _, row in df_top.iterrows()]
+    ax.set_yticks(y)
+    ax.set_yticklabels(etiquetas, fontsize=6)
+    ax.set_xlabel("Count (k_estudio)")
+    ax.set_title(f"GO Barplot del {grupo}")
+    ax.grid(True, axis="x", linestyle="--", alpha=0.4)
+
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=ax)
+    cbar.set_label("padj")
+
+    fig.tight_layout()
+    ruta = os.path.join(outdir, f"go_barplot_{grupo}.png")
+    fig.savefig(ruta, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    logger.info("Barplot guardado en %s", ruta)
+
+def dotplot(df_top: pd.DataFrame, grupo: str, outdir: str) -> None:
+    """Genera el dotplot de un grupo: X = gene_ratio, Y = termino, tamaño = k_estudio, color = padj."""
+    fig, ax = plt.subplots(figsize=(8, 6))
+    y = np.arange(len(df_top))
+    padj_seguro = np.clip(df_top["padj"].astype(float), 1e-300, 1.0)
+
+    sc = ax.scatter(
+        df_top["gene_ratio"].astype(float),
+        y,
+        s=df_top["k_estudio"].astype(float) * 25,
+        c=padj_seguro,
+        cmap="GnBu",
+        edgecolors="black",
+        linewidths=0.6,
+    )
+
+    etiquetas = [f"{row['termino']} ({row['aspecto']})" for _, row in df_top.iterrows()]
+    ax.set_yticks(y)
+    ax.set_yticklabels(etiquetas, fontsize=6)
+    ax.set_xlabel("GeneRatio")
+    ax.set_title(f"GO Dotplot del {grupo}")
+    ax.grid(True, linestyle="--", alpha=0.4)
+
+    cbar = plt.colorbar(sc, ax=ax)
+    cbar.set_label("padj")
+
+    fig.tight_layout()
+    ruta = os.path.join(outdir, f"go_dotplot_{grupo}.png")
+    fig.savefig(ruta, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    logger.info("Dotplot guardado en %s", ruta)
+
+def plot_enrichment(df_go: pd.DataFrame, outdir: str, top_n: int = 10) -> None:
+    """Genera un dotplot y un barplot por cada grupo presente en df_go."""
+    if df_go.empty:
+        logger.warning("No hay resultados de GO para graficar.")
+        return
+
+    os.makedirs(outdir, exist_ok=True)
+    for grupo in df_go["grupo"].dropna().unique():
+        df_top = filter_and_sort(df_go, grupo=grupo, top_n=top_n)
+        if df_top.empty:
+            logger.warning("[%s] Sin términos para graficar.", grupo)
+            continue
+        dotplot(df_top, grupo=grupo, outdir=outdir)
+        barplot(df_top, grupo=grupo, outdir=outdir)
 
 def my_parser() -> ap.Namespace:
     """

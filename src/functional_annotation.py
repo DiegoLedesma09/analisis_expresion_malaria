@@ -225,11 +225,10 @@ def run_go_enrichment(genes_estudio: list[str] | set[str],
         godag=godag,
         propagate_counts=True,
         alpha=alpha,
-        methods=[method],
-        prt=None,
+        methods=[method]
     )
 
-    resultados = goea.run_study(estudio_valido, prt=None)
+    resultados = goea.run_study(estudio_valido)
     col_padj = f"p_{method}"
 
     registros = []

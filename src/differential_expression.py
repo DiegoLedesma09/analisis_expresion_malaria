@@ -16,8 +16,8 @@ opcionalmente, genera los gráficos correspondientes (PCA y volcano plot o volca
 sin p-valor).
 
 Requisitos:
-    - InMoose (inmoose.deseq2)
-    - pandas, numpy, matplotlib y scikit-learn
+    - InMoose (inmoose.deseq2).
+    - pandas, numpy, matplotlib, scikit-learn y seaborn.
     - Matriz de conteos de featureCounts (genes × muestras, un BAM por muestra).
 
 Funciones principales:
@@ -41,6 +41,7 @@ Funciones principales:
     plot_volcano                Grafica el volcano plot de los genes.
     plot_volcano_sin_p          Grafica el volcano plot basado en log2FoldChange
                                 cuando no existen p-valores ajustados.
+    plot_heatmap                Grafica un Heatmap de los genes más significativos.
     setup_logging               Configura el logging del módulo.
     my_parser                   Define los argumentos de línea de comandos.
     main                        Ejecuta el flujo completo.
@@ -53,6 +54,7 @@ Archivos generados (rutas relativas al directorio donde se ejecuta):
     results/images/pca.png                     (si hay > 2 muestras en total)
     results/images/volcano.png                 (con réplicas / padj)
     results/images/volcano_sin_p.png           (sin réplicas / solo log2FoldChange)
+    results/images/heatmap.png                 (Top 25 up y 25 down)
     logs/differential_expression.log
 
 Argumentos:

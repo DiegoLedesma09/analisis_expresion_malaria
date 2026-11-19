@@ -6,11 +6,14 @@ Módulo para el análisis de expresión diferencial entre muestras resistentes y
 susceptibles, a partir de la matriz de conteos generada por featureCounts.
 
 Lee y limpia la matriz de conteos, arma la tabla de metadatos, filtra los genes
-de baja expresión y corre el análisis con InMoose (DESeq2), tomando
-susceptible como nivel de referencia (un log2FoldChange positivo indica mayor
-expresión en resistentes). Después clasifica los genes (up_resistant,
-up_susceptible o ns), guarda los resultados y, opcionalmente, genera el PCA de
-las muestras y el volcano plot.
+de baja expresión y corre el análisis con InMoose (DESeq2) si existen réplicas
+suficientes (>= 3 muestras por condición), tomando susceptible como nivel de 
+referencia (un log2FoldChange positivo indica mayor expresión en resistentes). 
+Cuando no hay réplicas suficientes (ej. experimentos con 2 muestras), calcula
+automáticamente el log2FoldChange directo sobre log2(CPM + 1). Después clasifica
+los genes (up_resistant, up_susceptible o ns), guarda los resultados y, 
+opcionalmente, genera los gráficos correspondientes (PCA y volcano plot o volcano 
+sin p-valor).
 
 Requisitos:
     - InMoose (inmoose.deseq2)
@@ -25,16 +28,19 @@ Funciones principales:
     load_metadata               Crea la tabla de metadatos con la condición de
                                 cada muestra.
     filter_genes                Elimina genes de baja expresión
-                                (>= 10 conteos en al menos 2 muestras).
+                                (>= 10 conteos en al menos 2 muestras, o 1 si hay <= 2).
     run_differential_expression Ejecuta el análisis de expresión diferencial
-                                con InMoose (DESeq2).
+                                con InMoose (DESeq2) si hay réplicas suficientes.
     classify_genes              Clasifica los genes en up_resistant,
                                 up_susceptible o ns
                                 (padj < 0.05 y |log2FoldChange| >= 1).
     save_results                Guarda la tabla completa y las listas de genes
                                 por categoría.
-    plot_pca                    Grafica el PCA de las muestras (log2(CPM+1)).
+    plot_pca                    Grafica el PCA de las muestras (log2(CPM+1)) si
+                                hay >= 3 muestras en total; con <= 2 se omite.
     plot_volcano                Grafica el volcano plot de los genes.
+    plot_volcano_sin_p          Grafica el volcano plot basado en log2FoldChange
+                                cuando no existen p-valores ajustados.
     setup_logging               Configura el logging del módulo.
     my_parser                   Define los argumentos de línea de comandos.
     main                        Ejecuta el flujo completo.
@@ -44,8 +50,9 @@ Archivos generados (rutas relativas al directorio donde se ejecuta):
                                                "categoria".
     results/exp_dif/up_resistant.txt           Genes más expresados en resistentes.
     results/exp_dif/up_susceptible.txt         Genes más expresados en susceptibles.
-    results/images/pca.png
-    results/images/volcano.png
+    results/images/pca.png                     (si hay > 2 muestras en total)
+    results/images/volcano.png                 (con réplicas / padj)
+    results/images/volcano_sin_p.png           (sin réplicas / solo log2FoldChange)
     logs/differential_expression.log
 
 Argumentos:
@@ -100,6 +107,9 @@ def load_counts(ruta_matriz: str) -> pd.DataFrame:
         matriz_conteos (pd.DataFrame) -> Matriz de conteos parseada sin columnas innecesarias, indexada 
             en "Geneid" y con los nombres de las muestras correctos.
     """
+    if not os.path.exists(ruta_matriz):
+        logger.error("No se encontró la matriz de conteos en: %s", ruta_matriz)
+        raise FileNotFoundError(f"Matriz de conteos faltante: {ruta_matriz}")
 
     df = pd.read_csv(ruta_matriz, sep="\t", comment="#")
     df = df.set_index("Geneid")
@@ -205,7 +215,8 @@ def load_metadata(matriz_conteos: pd.DataFrame, ruta_matriz: str, metadata_path:
 
 def filter_genes(matriz_conteos:pd.DataFrame) -> pd.DataFrame:
     """
-    Elimina genes cuyo umbral de conteos es >= 10 y con un mínimo de muestras >= 2 con la finalidad
+    Elimina genes de baja expresión (>= 10 conteos en al menos 2 muestras, o en al menos
+    1 muestra si el experimento solo cuenta con 2 muestras en total). Con la finalidad
     de aumentar la potencia estadística al eliminar genes que no tienen información suficiente, al igual
     que reducir el ruido computacional al eliminar genes no informativos.
 
@@ -217,18 +228,25 @@ def filter_genes(matriz_conteos:pd.DataFrame) -> pd.DataFrame:
         matriz_filtrada (pd.DataFrame) -> Matriz de conteos filtrada sin genes no informativos.
     """
     UMBRAL_CONTEOS = 10
-    MINIMO_MUESTRAS = 2
+    MINIMO_MUESTRAS = 1 if matriz_conteos.shape[1] <= 2 else 2
     
     mask = (matriz_conteos >= UMBRAL_CONTEOS).sum(axis=1) >= MINIMO_MUESTRAS
     matriz_filtrada = matriz_conteos[mask]
+
+    logger.info("Filtrado de genes: %d de %d genes retenidos (>= %d conteos en >= %d muestra(s))",
+                len(matriz_filtrada), len(matriz_conteos), UMBRAL_CONTEOS, MINIMO_MUESTRAS)
 
     return matriz_filtrada
 
 def run_differential_expression(matriz_filtrada:pd.DataFrame, meta:pd.DataFrame) -> pd.DataFrame:
     """
-    Ejecuta el análisis de expresión diferencial con InMoose (DESeq2) comparando las condiciones
-    resistant vs susceptible, con susceptible como nivel de referencia. Un log2FoldChange positivo
-    indica mayor expresión en resistentes.
+    Ejecuta el análisis de expresión diferencial comparando condition1 vs condition2
+    (con condition2 como referencia; log2FoldChange positivo indica mayor expresión en condition1).
+
+    - Si hay >= 3 muestras por condición: ejecuta InMoose (DESeq2).
+    - Si hay < 3 muestras en alguna condición (ej. solo 2 muestras): calcula directamente
+      el log2FoldChange a partir de log2(CPM + 1), dejando pvalue y padj como NaN.
+    
 
     Args:
         matriz_filtrada (pd.DataFrame) -> Matriz de conteos crudos (enteros) genes × muestras, sin
@@ -240,38 +258,82 @@ def run_differential_expression(matriz_filtrada:pd.DataFrame, meta:pd.DataFrame)
         df_res (pd.DataFrame) -> Tabla de resultados por gen (baseMean, log2FoldChange, pvalue, padj,
             etc.) ordenada por padj de menor a mayor.
     """
+    conteo_por_condicion = meta["condition"].value_counts()
+    tiene_replicas = (conteo_por_condicion >= 3).all() and len(conteo_por_condicion) >= 2
 
-    dds = DESeqDataSet(countData = matriz_filtrada.T,
-                        clinicalData = meta,
-                        design = "~ condition"
-                        )
+    if tiene_replicas:  
+        logger.info("Réplicas suficientes detectadas (%s). Ejecutando DESeq2 con InMoose.",
+                    conteo_por_condicion.to_dict())
+
+        dds = DESeqDataSet(countData = matriz_filtrada.T,
+                            clinicalData = meta,
+                            design = "~ condition"
+                            )
     
-    dds = DESeq(dds)
-    res = dds.results()
-    df_res = pd.DataFrame(res).sort_values("padj")
+        dds = DESeq(dds)
+        res = dds.results()
+        df_res = pd.DataFrame(res).sort_values("padj")
+        return df_res
+
+    logger.warning(
+        "Réplicas insuficientes (%s). Calculando log2FoldChange directo sobre log2(CPM + 1).",
+        conteo_por_condicion.to_dict(),
+    )
+    
+    cond_ref, cond_test = list(meta["condition"].cat.categories)
+    muestras_test = meta.index[meta["condition"] == cond_test]
+    muestras_ref = meta.index[meta["condition"] == cond_ref]
+
+    cpm = matriz_filtrada.div(matriz_filtrada.sum(axis=0), axis=1) * 1e6
+    log_cpm = np.log2(cpm + 1.0)
+
+    mean_test = log_cpm[muestras_test].mean(axis=1)
+    mean_ref = log_cpm[muestras_ref].mean(axis=1)
+
+    df_res = pd.DataFrame(
+        {
+            "baseMean": cpm.mean(axis=1),
+            f"log2CPM_{cond_test}": mean_test,
+            f"log2CPM_{cond_ref}": mean_ref,
+            "log2FoldChange": mean_test - mean_ref,
+            "pvalue": np.nan,
+            "padj": np.nan,
+        },
+        index=matriz_filtrada.index,
+    )
+
+    df_res = df_res.reindex(df_res["log2FoldChange"].abs().sort_values(ascending=False).index)
     return df_res
 
 def classify_genes(df_res: pd.DataFrame) -> pd.DataFrame:
     """
-    Clasifica cada gen según su padj y su log2FoldChange, agregando la columna "categoria".
-    No elimina genes: devuelve la tabla completa para poder usarla en el volcano.
+    Clasifica cada gen en 'up_resistant', 'up_susceptible' o 'ns'. Cuando existen
+    p-valores ajustados utiliza padj < 0.05 y |log2FoldChange| >= 1.0; cuando no
+    hay p-valores (análisis sin réplicas suficientes), clasifica únicamente por
+    |log2FoldChange| >= 1.0.
 
     Args:
-        df_res (pd.DataFrame) -> Tabla de resultados de expresión diferencial, con las columnas
-            "padj" y "log2FoldChange".
+        df_res (pd.DataFrame) -> Tabla de resultados devuelta por run_differential_expression,
+            con las columnas "log2FoldChange" y "padj".
 
     Returns:
-        df_clasificado (pd.DataFrame) -> Copia de df_res con la columna "categoria":
-            "up_resistant", "up_susceptible" o "ns" (no significativo).
+        df_clasificado (pd.DataFrame) -> Copia de df_res con la columna adicional "categoria".
     """
     df_clasificado = df_res.copy()
 
-    sig = df_clasificado["padj"] < 0.05
-
-    condiciones = [
-        sig & (df_clasificado["log2FoldChange"] >= 1.0),
-        sig & (df_clasificado["log2FoldChange"] <= -1.0),
-    ]
+    if df_clasificado["padj"].isna().all():
+        logger.warning("No hay p-valores ajustados. Clasificando solo por |log2FoldChange| >= 1.0")
+        condiciones = [
+            (df_clasificado["log2FoldChange"] >= 1.0),
+            (df_clasificado["log2FoldChange"] <= -1.0),
+        ]
+    else:
+        sig = df_clasificado["padj"] < 0.05
+        condiciones = [
+            sig & (df_clasificado["log2FoldChange"] >= 1.0),
+            sig & (df_clasificado["log2FoldChange"] <= -1.0),
+        ]
+        
     df_clasificado["categoria"] = np.select(
         condiciones, ["up_resistant", "up_susceptible"], default="ns"
     )
@@ -344,9 +406,10 @@ def plot_pca(matriz_filtrada: pd.DataFrame, meta: pd.DataFrame, outdir: str = "r
     fig.savefig(os.path.join(outdir, "pca.png"), dpi=300, bbox_inches="tight")
     plt.close(fig)
 
-def plot_volcano(df_clasificado: pd.DataFrame, outdir: str = "results/images/") -> None:
+def plot_volcano(df_clasificado: pd.DataFrame, outdir: str = "results/images/",
+                 condition1: str = "resistant", condition2: str = "susceptible") -> None:
     """
-    Genera el volcano plot de la expresión diferencial (resistant vs susceptible) y lo guarda como
+    Genera el volcano plot de la expresión diferencial ({condition1} vs {condition2}) y lo guarda como
     imagen. Cada punto es un gen: el eje X es el log2FoldChange y el eje Y es -log10(padj). Los
     genes se colorean según la columna "categoria" (rojo: up_resistant, azul: up_susceptible,
     gris: ns). Los genes con padj = NaN se excluyen del gráfico porque no se pueden ubicar en el eje Y.
@@ -355,6 +418,8 @@ def plot_volcano(df_clasificado: pd.DataFrame, outdir: str = "results/images/") 
         df_clasificado (pd.DataFrame) -> Tabla de resultados devuelta por classify_genes, con las
             columnas "log2FoldChange", "padj" y "categoria".
         outdir (str) -> Directorio donde se guarda la figura (se crea si no existe).
+        condition1 (str) -> Condición de prueba (default: resistant).
+        condition2 (str) -> Condición de referencia (default: susceptible).
 
     Returns:
         None.
@@ -375,7 +440,7 @@ def plot_volcano(df_clasificado: pd.DataFrame, outdir: str = "results/images/") 
         ax.scatter(sub["log2FoldChange"], sub["neg_log10_padj"],
                    c=color, s=10, alpha=0.7, label=f"{cat} (n={len(sub)})")
 
-    ax.set_xlabel("log2FoldChange (resistant vs susceptible)")
+    ax.set_xlabel(f"log2FoldChange ({condition1} vs {condition2})")
     ax.set_ylabel("-log10(padj)")
     ax.legend(frameon=False)
 
@@ -383,6 +448,64 @@ def plot_volcano(df_clasificado: pd.DataFrame, outdir: str = "results/images/") 
     fig.savefig(os.path.join(outdir, "volcano.png"), dpi=300, bbox_inches="tight")
     plt.close(fig)
     
+def plot_volcano_sin_p(df_raise: pd.DataFrame, outdir: str = "results/images/",
+                       condition1: str = "resistant", condition2: str = "susceptible") -> None:
+    """
+    Genera un volcano plot basado únicamente en log2FoldChange cuando no se cuenta
+    con p-valores ajustados (por ejemplo, análisis sin réplicas biológicas).
+    El eje X representa log2FoldChange y el eje Y muestra la expresión promedio
+    log2(baseMean + 1) para visualizar la magnitud del cambio por nivel de expresión.
+
+    Args:
+        df_raise (pd.DataFrame) -> Tabla de resultados clasificada con las columnas
+            "log2FoldChange", "baseMean" y "categoria".
+        outdir (str) -> Directorio donde se guarda la figura (default: results/images/).
+        condition1 (str) -> Condición de prueba (default: resistant).
+        condition2 (str) -> Condición de referencia (default: susceptible).
+
+    Returns:
+        None. Guarda la figura en <outdir>/volcano_sin_p.png (300 dpi).
+    """
+    COLORES = {
+        "up_resistant": "#d62728",
+        "up_susceptible": "#1f77b4",
+        "ns": "#b0b0b0",
+    }
+
+    df = df_raise.dropna(subset=["log2FoldChange"]).copy()
+    y_vals = (
+        np.log2(df["baseMean"] + 1.0)
+        if "baseMean" in df.columns
+        else pd.Series(np.zeros(len(df)), index=df.index)
+    )
+    df["y_expr"] = y_vals
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+    for cat in ["ns", "up_susceptible", "up_resistant"]:
+        sub = df[df["categoria"] == cat]
+        ax.scatter(
+            sub["log2FoldChange"],
+            sub["y_expr"],
+            c=COLORES[cat],
+            s=10,
+            alpha=0.7,
+            label=f"{cat} (n={len(sub)})",
+        )
+
+    ax.axvline(1.0, color="#333333", linestyle="--", linewidth=1)
+    ax.axvline(-1.0, color="#333333", linestyle="--", linewidth=1)
+    ax.axvline(0.0, color="#666666", linestyle="-", linewidth=0.8)
+
+    ax.set_xlabel(f"log2FoldChange ({condition1} vs {condition2})")
+    ax.set_ylabel("log2(baseMean + 1)" if "baseMean" in df.columns else "Genes")
+    ax.set_title("Volcano Plot sin p-valor (basado en log2FoldChange)")
+    ax.legend(frameon=False)
+
+    os.makedirs(outdir, exist_ok=True)
+    ruta_salida = os.path.join(outdir, "volcano_sin_p.png")
+    fig.savefig(ruta_salida, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    logger.info("Volcano plot sin p-valor guardado en: %s", ruta_salida)
 
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     """
@@ -417,7 +540,7 @@ def my_parser() -> ap.Namespace:
         ap.Namespace: Argumentos indicados por el usuario
     """    
     parser = ap.ArgumentParser(
-    description="Pipeline para del análisis de expresión diferencial con el uso de InMoose")
+    description="Pipeline para el análisis de expresión diferencial con el uso de InMoose")
     parser.add_argument("-m", "--matrix", required=False, default="data/counts/raw_counts.txt",
                         help="Ruta a la matriz cruda generada por featureCounts")
     parser.add_argument("-md", "--metadata", required=False, default=None,
@@ -446,11 +569,18 @@ def main():
         2. Lee la matriz de conteos de featureCounts y la deja limpia (genes × muestras).
         3. Crea la tabla de metadatos con la condición de cada muestra.
         4. Filtra los genes de baja expresión.
-        5. Corre el análisis de expresión diferencial.
-        6. Clasifica los genes en up_resistant, up_susceptible o ns.
+        5. Corre el análisis de expresión diferencial: corre InMoose (DESeq2) si
+           ambas condiciones cuentan con >= 3 réplicas, o calcula log2FoldChange
+           directo sobre log2(CPM + 1) cuando no hay réplicas suficientes.
+        6. Clasifica los genes en up_resistant, up_susceptible o ns usando
+           padj < 0.05 y |log2FoldChange| >= 1.0 (o solo |log2FoldChange| >= 1.0 si
+           no existen p-valores ajustados).
         7. Guarda en --outdir la tabla completa y las listas de genes por categoría.
-        8. Si --pcaplot está activo, genera el PCA de las muestras.
-        9. Si --volcanoplot está activo, genera el volcano plot.
+        8. Si --pcaplot está activo existen más de 2 muestras en total, genera el
+           gráfico de PCA en results/images/pca.png; con <= 2 muestras lo omite.
+        9. Si --volcanoplot está activo, genera el volcano plot si hay padj, o 
+           el volcano plot sin p-valor (volcano_sin_p.png) si el análisis fue 
+           exploratorio.
 
     Los argumentos se leen de la línea de comandos mediante my_parser().
 
@@ -481,13 +611,22 @@ def main():
     # Se guardan los resultados en la carpeta "results/exp_dif"
     save_results(df_clasificado, args.outdir)
 
-    # Se plotea el PCA plot
+    n_muestras = len(matriz_filtrada.columns)
+    # Se plotea el PCA plot si hay más de 2 muestras en total
     if args.pcaplot:
-        plot_pca(matriz_filtrada, meta)
+        if n_muestras <= 2:
+            logger.warning("Se detectaron %d muestra(s); se requieren al menos 3 muestras en total para generar el PCA plot.",
+                           n_muestras,)
+        else:
+            plot_pca(matriz_filtrada, meta)
 
     # Se plotea el volcano plot
     if args.volcanoplot:
-        plot_volcano(df_clasificado)
+        if df_clasificado["padj"].isna().all():
+            plot_volcano_sin_p(df_clasificado, condition1=args.condition1, condition2=args.condition2)
+        else:
+            plot_volcano(df_clasificado, condition1=args.condition1, condition2=args.condition2)
+    logger.info("Análisis de expresión diferencial finalizado correctamente")
 
 if __name__ == "__main__":
     main()

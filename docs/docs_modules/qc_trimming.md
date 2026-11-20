@@ -1,4 +1,4 @@
-# Módulo para el control de calidad y liempieza de lecturas ('qc_trimming')
+# Módulo para el control de calidad y liempieza de lecturas (`qc_trimming`)
 
 ## Resumen
 

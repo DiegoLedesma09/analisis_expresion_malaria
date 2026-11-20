@@ -1,4 +1,4 @@
-# Modulo de anotación funcional y enriquecimiento de Gene Ontology (`functional_annotation.py`)
+# Módulo de anotación funcional y enriquecimiento de Gene Ontology (`functional_annotation.py`)
 
 ## Resumen
 

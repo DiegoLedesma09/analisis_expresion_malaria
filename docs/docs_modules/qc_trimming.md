@@ -1,4 +1,4 @@
-# Pipeline de control de calidad y trimming de lecturas
+# Módulo para el control de calidad y liempieza de lecturas ('qc_trimming')
 
 ## Resumen
 
@@ -26,7 +26,6 @@ El módulo realiza lo siguiente:
 **Ejecútese después del módulo `download_data.py`.**
 
 ## Estructura de archivos generados
-
 ```text
 analisis_expresion_malaria/
 ├── data/
@@ -44,7 +43,6 @@ analisis_expresion_malaria/
 ```
 
 ## Pipeline
-
 ```mermaid
 flowchart TD
     A([data/raw/grupo/sra_runs]) --> B[run_fastqc: raw]

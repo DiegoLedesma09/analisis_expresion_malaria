@@ -27,7 +27,6 @@ El módulo realiza lo siguiente:
 **Se recomienda ejecutar desde la raíz del proyecto, ya que las rutas por defecto son relativas (`data/`, `results/`, `logs/`)**
 
 ## Estructura de archivos generados
-
 ```text
 analisis_expresion_malaria/
 ├── results/
@@ -42,7 +41,6 @@ analisis_expresion_malaria/
 ```
 
 ## Pipeline
-
 ```mermaid
 flowchart TD
     A([resultados_completos.csv]) --> B[load_results]

@@ -22,7 +22,6 @@ El módulo realiza lo siguiente:
 **Se recomienda ejecutar desde la raíz del proyecto, ya que las rutas por defecto son relativas (`data/`, `logs/`).**
 
 ## Estructura de archivos generados 
-
 ```text
 analisis_expresion_malaria/
 ├── data/
@@ -42,9 +41,9 @@ analisis_expresion_malaria/
 │           └── SRR*.summary.txt     # Resumen de tasas de alineamiento
 └── logs/
     └── align_reads.log
+```
 
 ## Pipeline 
-
 ```mermaid
 flowchart TD
     A([Lecturas _val_1.fq y _val_2.fq]) --> B[build_index]

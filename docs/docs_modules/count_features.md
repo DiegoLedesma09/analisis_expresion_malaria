@@ -7,13 +7,12 @@ Este módulo automatiza la creación de la matriz de conteos de expresión géni
 ## Requisitos
 
 -   Python 3.12.
--   **Subread** (proporciona el comando `featureCounts`.     
+-   **Subread** proporciona el comando `featureCounts`.     
 -   Librerías de Python: `pandas`, `matplotlib`.    
 -   Archivos BAM ordenados e indexados (`data/aligned/<grupo>/*.bam`).
 -   Archivo GTF de anotación (generado por `download_data.py`).
 
 ## Estructura de los archivos generados 
-
 ```text
 ├── data
 │   ├── counts
@@ -27,8 +26,8 @@ Este módulo automatiza la creación de la matriz de conteos de expresión géni
 │   └── images
 │       ├── assignment_proportion.png
 ```
-## Pipeline
 
+## Pipeline
 ```mermaid 
 flowchart TD
     A([BAMs por grupo]) --> B[find_bams]
@@ -43,6 +42,7 @@ flowchart TD
     D --> F[plot_assignment]
     F --> F1[(assignment_proportion.png)]
 ```
+
 ## Componentes clave 
 
 -   **`find_bams(data_dir, grupo)`**: Busca y retorna una lista con las rutas absolutas de todos los archivos `.bam` dentro de la carpeta de un grupo específico (ej. `data/aligned/resistant/`). Lanza un error si la carpeta o los archivos no existen.

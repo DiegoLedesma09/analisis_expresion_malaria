@@ -21,7 +21,6 @@ El módulo realiza lo siguiente
 - Matriz cruda generada por `featureCounts` (idealmente `data/counts/raw_counts.txt`).
 
 ## Estructura de archivos generados
-
 ```text
 analisis_expresion_malaria/
 ├── results/
@@ -39,7 +38,6 @@ analisis_expresion_malaria/
 ```
 
 ## Pipeline
-
 ```mermaid
 flowchart TD
     A([raw_counts.txt]) --> B[load_counts]

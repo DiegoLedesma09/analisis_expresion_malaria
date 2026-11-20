@@ -1,4 +1,4 @@
-# Pipeline de la descarga de datos del Bioproject 
+# Módulo para la descarga de datos ('download_data') 
 
 ## Resumen 
 
@@ -27,7 +27,7 @@ El módulo realiza lo siguiente:
 **Se recomienda ejecutar desde la raíz del proyecto, ya  (`docs/`, `data/`, `results/`, `logs/`).**
 
 ## Estructura de archivos generados 
-
+```text
 analisis_expresion_malaria/
 ├── docs/metadata/
 │ ├── bioproject_metadata.txt
@@ -45,6 +45,7 @@ analisis_expresion_malaria/
 │ └── reads_proportion.png
 └── logs/
 └── download_data.log
+```
 
 ## Pipeline 
 

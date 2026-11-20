@@ -32,23 +32,18 @@ Funciones principales:
     main                Ejecuta el flujo completo.
 
 Archivos generados (rutas relativas al directorio de salida, default results/):
-    results/fastqc/<raw|trimmed>/<grupo>/    Reportes de FastQC
-    results/qc/<raw|trimmed>/<grupo>/        Reportes de MultiQC
-    results/trimmed/<grupo>/                 Lecturas recortadas (<SRR>_val_1.fq y
-                                             <SRR>_val_2.fq) y reportes de trimming
-    results/images/qc_comparison.png         Gráfica antes/después del trimming
+    results/fastqc/<raw|curated>/<grupo>/    Reportes de FastQC
+    data/curated/<grupo>/                    Lecturas recortadas (<SRR>_val_1.fq y <SRR>_val_2.fq) listas para alineamiento
+    results/qc/<raw|curated>/<grupo>/        Reportes temporales de MultiQC (se eliminan automáticamente al finalizar)
 
 Argumentos:
     -w,  --workers      Número de hilos para FastQC y Trim Galore (default: 8).
     -o,  --outdir       Directorio de salida (default: results).
     -v,  --verbose      Muestra mensajes DEBUG.
     --log_file          Ruta del archivo de log.
-    -g,  --graphic      Incluye el gráfico comparativo del trimming (default).
-         --no-graphic   Omite el gráfico comparativo del trimming.
 
 Uso:
     python src/qc_trimming.py -w 8 -o results -v
-    python src/qc_trimming.py --no-graphic
 
 Nota:
     - Ejecutar desde la raíz del proyecto, ya que las rutas de entrada
@@ -461,9 +456,7 @@ def main():
            muestras (solo diagnóstico, no se descarta nada).
         2. Empareja las lecturas _1 y _2 por SRR y las recorta con Trim Galore.
         3. Corre FastQC y MultiQC sobre las lecturas recortadas y las clasifica.
-        4. Si --graphic está activo, grafica cuántas muestras pasan el filtro
-           antes y después del trimming.
-        5. Elimina las muestras con fail y conserva solo los pares completos,
+        4. Elimina las muestras con fail y conserva solo los pares completos,
            que son los que entran al análisis.
 
     Los argumentos se leen de la línea de comandos mediante my_parser().

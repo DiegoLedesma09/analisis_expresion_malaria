@@ -40,15 +40,14 @@ Funciones principales:
     main                        Ejecuta el flujo completo.
 
 Archivos generados (rutas relativas al directorio donde se ejecuta):
-    docs/bioproject_metadata
-    docs/biosample_metadata
-    docs/sra_metadata
-    docs/genome_metadata
+    docs/metadata/bioproject_metadata
+    docs/metadata/biosample_metadata
+    docs/metadata/sra_metadata
+    docs/metadata/genome_metadata
     data/genome/genome_{organism}.fasta
     data/genome/genome_{organism}.gtf
     data/raw/susceptible/sra_runs/     Lecturas de la cepa susceptible
     data/raw/resistant/sra_runs/       Lecturas de la cepa resistente
-    data/
     results/images/reads_proportion
 
 Argumentos:

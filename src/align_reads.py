@@ -5,6 +5,11 @@ align_reads.py
 Módulo para el alineamiento de lecturas RNA-seq curadas contra el genoma 
 de referencia utilizando HISAT2, y procesamiento de alineamientos con samtools.
 
+Requisitos:
+    - HISAT2 y samtools instalados y en el PATH.
+    - Lecturas curadas en data/curated/<grupo>/ (generadas por qc_trimming.py).
+    - Genoma de referencia (FASTA) y anotación (GTF) en data/genome/.
+
 Funciones principales:
     build_index             Construye el índice de HISAT2 (omite si ya existe).
     run_hisat2              Alinea lecturas paired-end con HISAT2 y guarda el resumen.
@@ -15,6 +20,12 @@ Funciones principales:
     setup_logging           Configura el logging del módulo.
     my_parser               Define los argumentos de línea de comandos.
     main                    Ejecuta el flujo completo.
+
+Archivos generados:
+    data/aligned/<grupo>/<SRR>.bam          Archivo BAM ordenado
+    data/aligned/<grupo>/<SRR>.bam.bai      Índice del BAM
+    data/aligned/<grupo>/<SRR>.summary.txt  Resumen de HISAT2
+    logs/align_reads.log                    Archivo de registro
 
 Argumentos:
     -r, --reference         Ruta al genoma de referencia (FASTA).
@@ -28,6 +39,13 @@ Argumentos:
     -u, --umbral            Umbral mínimo de tasa de alineamiento (default 70.0)
     -v, --verbose           Muestra mensajes DEBUG.
     --log_file              Guarda el archivo de log.
+
+Nota:
+    - Ejecutar desde la raíz del proyecto.
+    - Requiere que qc_trimming.py haya generado las lecturas en data/curated/.
+    - Si el índice ya existe en la ruta especificada, el módulo omite la construcción 
+      y pasa directamente al alineamiento.
+    - Un fallo individual en una muestra (SRR) no detiene el procesamiento del resto.    
 """
 
 import argparse as ap

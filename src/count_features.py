@@ -50,6 +50,14 @@ Argumentos:
 
 Uso:
     python src/count_features.py -gtf data/genome/genome_Anopheles_gambiae.gtf -v
+
+Nota:
+    - Ejecutar desde la raíz del proyecto.
+    - Requiere que los archivos BAM hayan sido ordenados e indexados previamente por 
+      align_reads.py.
+    - El archivo GTF debe coincidir con el ensamble del genoma usado en el alineamiento.
+    - La matriz cruda generada (raw_counts.txt) y su resumen (.summary) son el 
+      input directo para el módulo de expresión diferencial.    
 """
 
 import argparse as ap

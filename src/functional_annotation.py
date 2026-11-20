@@ -31,7 +31,7 @@ Funciones principales:
     my_parser           Define y procesa los argumentos de línea de comandos.
     main                Orquesta el flujo completo de enriquecimiento GO.
 
-    Archivos generados:
+Archivos generados:
     results/go/go_enrichment_results.tsv          Tabla con todos los términos GO evaluados.
     results/images/go_barplot_<grupo>.png             Gráfico de barras por grupo (up/down).
     results/images/go_dotplot_<grupo>.png             Gráfico de puntos por grupo (up/down).
@@ -47,6 +47,17 @@ Argumentos:
     --pvalue              Umbral de significancia ajustado (default: 0.05).
     --method              Corrección múltiple: 'fdr_bh' o 'bonferroni' (default: fdr_bh).
     --aspectos            Aspectos de GO a evaluar (BP, MF, CC).
+
+Uso:
+    python src/functional_annotation.py -v    
+
+Nota:
+    - Requiere descargar previamente la ontología (go-basic.obo) y las anotaciones (gene2go) 
+      desde NCBI y guardarlas en data/go/. El archivo gene2go contiene anotaciones de 
+      todos los organismos, pero el parámetro --taxid (7165) filtra automáticamente 
+      solo las de Anopheles gambiae.
+    - Ejecutar desde la raíz del proyecto. El archivo de entrada por defecto es el 
+      generado por differential_expression.py.
 """
 import argparse as ap
 import logging

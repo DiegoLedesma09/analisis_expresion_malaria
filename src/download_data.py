@@ -24,6 +24,7 @@ Funciones principales:
     save_sra_metadata           Guarda los metadatos de los SRA.
     download_sra_lectures       Descarga las lecturas con fasterq-dump y las
                                 separa por fenotipo.
+    download_runs_from_file     Descarga solo los runs de un CSV (--runs_file).
     get_bioproject_organism     Regresa el organismo asociado al Bioproject.
     get_genome_metadata         Guarda los metadatos del genoma de referencia
                                 (base de datos assembly).
@@ -40,14 +41,15 @@ Funciones principales:
     main                        Ejecuta el flujo completo.
 
 Archivos generados (rutas relativas al directorio donde se ejecuta):
-    docs/metadata/bioproject_metadata
-    docs/metadata/biosample_metadata
-    docs/metadata/sra_metadata
-    docs/metadata/genome_metadata
+    docs/bioproject_metadata
+    docs/biosample_metadata
+    docs/sra_metadata
+    docs/genome_metadata
     data/genome/genome_{organism}.fasta
     data/genome/genome_{organism}.gtf
     data/raw/susceptible/sra_runs/     Lecturas de la cepa susceptible
     data/raw/resistant/sra_runs/       Lecturas de la cepa resistente
+    data/
     results/images/reads_proportion
 
 Argumentos:
@@ -59,6 +61,7 @@ Argumentos:
     --thr_fq            Workers para fasterq-dump (default: 8).
     -r,  --reference    Incluye el genoma de referencia (default).
          --no-reference Omite el genoma de referencia.
+    --runs_file         CSV con columnas 'run' y 'grupo' para descargar solo esos runs.
     -g,  --graphic      Incluye el gráfico comparativo de proporción de lecturas (default).
          --no-graphic   Omite el gráfico comparativo de proporción de lecturas.
     -gtf, --annotation  Incluye la anotación GTF del genoma de referencia (default).
@@ -75,6 +78,7 @@ Nota:
 """
 
 import argparse as ap
+import csv
 import glob
 import gzip
 import logging
@@ -385,6 +389,83 @@ def download_sra_lectures(bioproject_id:str, outdir:str = "data/", w:int = 8) ->
                 logger.info("Descarga exitosa: %s", run)
             except subprocess.CalledProcessError as e:
                 raise ValueError(f"Error al descargar {run} con fasterq-dump {e}") from e
+
+def read_runs_file(runs_file:str, condition1:str = "resistant", condition2:str = "susceptible") -> list[tuple[str, str]]:
+    """
+    Lee un archivo .csv con las columnas "run" y "grupo" y regresa la lista de (run, grupo)
+    a descargar
+
+    Args:
+        runs_file (str) -> Ruta del archivo .csv (columnas obligatorias: run, grupo
+        condition1 -> Nombre de la condicion a comparar (1) (por defecto resistant)
+        condition2 -> Nombre de la condición a comparar (2) (por defecto susceptible)
+
+    Returns:
+        list[tuple[str, str]] -> Asociación SRR - Grupo 
+    """
+    if not os.path.exists(runs_file):
+        logger.warning("No se encontró el archivo en la ruta %s", runs_file)
+        raise ValueError(f"No se encontró el archivo en la ruta {runs_file}")
+
+    runs = []
+    with open(runs_file, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        if not reader.fieldnames or not {"run", "grupo"} <= set(reader.fieldnames):
+            logger.warning("El archivo runs necesita las columnas run y grupo")
+            raise ValueError("El archivo runs necesita las columnas run y grupo")
+        
+        for row in reader:
+            run = row["run"].strip()
+            grupo = row["grupo"].strip().lower()
+            if not re.fullmatch(r"[SED]RR\d+", run):
+                logger.warning("Accesion de corrida no válido")
+                raise ValueError(f"Accession de corrida no válido: {run!r}")
+            if grupo not in (condition1, condition2):
+                logger.warning("Grupo no válido para las condiciones dadas")
+                raise ValueError(f"Grupo no válido para {run}: {grupo!r} (use resistant o susceptible)")
+            runs.append((run, grupo))
+        
+    if not runs:
+        raise ValueError(f"El archivo de runs está vacío: {runs_file}")
+    return runs
+
+def download_runs_from_file(runs_file:str, outdir:str = "data/", w:int = 6, 
+                            condition1:str = "resistant", condition2:str = "susceptible") -> None:
+    """
+    Descarga solo los runs indicados en un CSV y los guarda en
+    data/raw/<grupo>/sra_runs, igual que download_sra_lectures. Omite los
+    runs cuyos dos FASTQ ya existen.
+
+    Args:
+        runs_file (str) -> CSV con las columnas 'run' y 'grupo'
+        outdir (str) -> Directorio de salida (por defecto 'data/')
+        w (int) -> Workers para fasterq-dump (por defecto: 8)
+        condition1 -> Nombre de la condicion a comparar (1) (por defecto resistant)
+        condition2 -> Nombre de la condición a comparar (2) (por defecto susceptible)
+
+    Returns:
+        None
+    """
+    runs = read_runs_file(runs_file, condition1, condition2)
+
+    for i, (run, grupo) in enumerate(runs, start=1):
+        domain_dir = os.path.join(outdir, "raw", grupo, "sra_runs")
+        os.makedirs(domain_dir, exist_ok=True)
+
+        fq1 = os.path.join(domain_dir, f"{run}_1.fastq")
+        fq2 = os.path.join(domain_dir, f"{run}_2.fastq")
+        if os.path.exists(fq1) and os.path.exists(fq2):
+            logger.info("[%d/%d] %s ya existe, se omite", i, len(runs), run)
+            continue
+
+        logger.info("[%d/%d] Descargando %s (%s) hacia %s", i, len(runs), run, grupo, domain_dir)
+        cmd = ["fasterq-dump", run, "-O", domain_dir, "--split-files", "-e", str(w)]
+        try:
+            subprocess.run(cmd, check=True)
+            logger.info("Descarga de datos exitosa %s", run)
+        except subprocess.CalledProcessError as e:
+            raise ValueError(f"Error al descargar {run} con fasterq_dump {e}")
+
 
 def get_bioproject_organism(bioproject_id:str) -> str:
     """
@@ -725,6 +806,12 @@ def my_parser() -> ap.Namespace:
     parser.add_argument("--thr_fq", required=False, type=int, default=8, help="Workers para faster-dump")
     parser.add_argument("-r", "--reference", action=ap.BooleanOptionalAction, default=True, 
                         help="Descarga del genoma de referencia (usa --no-reference para omitirlo)")
+    parser.add_argument("--runs_file", required=False, default=None,
+                        help="CSV con columnas 'run' y 'grupo'; si se indica, descarga solo esos runs")
+    parser.add_argument("-c1", "--condition1", required=False, default="resistant",
+                        help="Condición de prueba (default: resistant)")
+    parser.add_argument("-c2", "--condition2", required=False, default="susceptible",
+                        help="Condición de referencia (default: susceptible)")
     parser.add_argument("-gtf", "--annotation", action=ap.BooleanOptionalAction, default=True,
                         help="Descarga de la anotación GTF de referencia (usa --no-annotation para omitirla)")
     parser.add_argument("-g", "--graphic", action=ap.BooleanOptionalAction, default=True,
@@ -770,7 +857,11 @@ def main() -> None:
         save_sra_metadata(sra_ids, args.project, outdir=args.outdirm)
 
         # Lecturas
-        download_sra_lectures(args.project, outdir=args.outdird, w=args.thr_fq)
+        if args.runs_file:
+            download_runs_from_file(args.runs_file, outdir=args.outdird, w=args.thr_fq, 
+                                    condition1=args.condition1, condition2=args.condition2)
+        else:
+            download_sra_lectures(args.project, outdir=args.outdird, w=args.thr_fq)
 
         # Genoma de referencia (opcional)
         if args.reference:

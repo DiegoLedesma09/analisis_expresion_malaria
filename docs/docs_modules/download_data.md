@@ -10,6 +10,7 @@ El módulo realiza lo siguiente:
 2. Descarga los metadatos del BioProject.
 3. Obtiene los BioSamples y SRA asociados, y guarda sus metadatos.
 4. Descarga las lecturas (FASTQ) de cada SRA y las clasifica por fenotipo (`susceptible` o `resistant`).
+   Opcionalmente, con `--runs_file`, descarga solo los runs indicados en un CSV y toma el grupo de ese archivo.
 5. Opcionalmente, descarga el genoma de referencia del organismo.
 6. Descarga opcionalmente el formato GTF para el posterior alineamiento
 7. Opcionalmente, genera un gráfico comparativo de proporción de lecturas
@@ -57,7 +58,9 @@ flowchart TD
     D --> E[get_biosamples_and_sra]
     E --> E1[save_biosample_metadata] --> E2[(biosample_metadata.txt)]
     E --> E3[save_sra_metadata] --> E4[(sra_metadata.txt)]
-    E --> F[download_sra_lectures]
+    E -.->|--runs_file| R[read_runs_file -> download_runs_from_file]
+    R --> F1
+    R --> F2
     F --> F1[(data/raw/susceptible/sra_runs/)]
     F --> F2[(data/raw/resistant/sra_runs/)]
     F -.->|--reference| G[ get_bioproject_organism -> get_genome_metadata -> get_reference_assembly -> download_reference_genome]
@@ -107,6 +110,22 @@ BioSample en `docs/metadata/biosample_metadata.txt`.
 Las lecturas se almacenan en `data/raw/susceptible/sra_runs/` o
 `data/raw/resistant/sra_runs/` según el fenotipo detectado. Si aparece un
 fenotipo distinto, se crea `data/raw/<fenotipo>/sra_runs/`.
+
+`read_runs_file(runs_file)` — lee un CSV con las columnas obligatorias `run` y
+`grupo` y regresa una lista de pares `(run, grupo)`. Lanza `ValueError` si falta
+el archivo o alguna columna, si el accession no tiene la forma `SRR/ERR/DRR` seguida
+de dígitos, si `grupo` no es `resistant` o `susceptible`, o si el archivo está vacío.
+
+`download_runs_from_file(runs_file, outdir="data/", w=8)` — alternativa a
+`download_sra_lectures` cuando se usa `--runs_file`. Para cada run del CSV:
+
+1. Crea `data/raw/<grupo>/sra_runs/` si no existe.
+2. Omite el run si ya existen `<SRR>_1.fastq` y `<SRR>_2.fastq`.
+3. Ejecuta `fasterq-dump <SRR> -O <dir> --split-files -e <workers>`.
+
+No consulta Entrez ni infiere el fenotipo: el grupo sale de la columna `grupo`.
+Útil cuando el BioProject tiene más muestras de las que se quieren analizar, o
+cuando los títulos de los experimentos no indican el fenotipo.
 
 ### Genoma de referencia
 
@@ -159,6 +178,7 @@ Soporta `.fastq` y `.fastq.gz`.
 | `-g`, `--graphic` / `--no-graphic` | No | `True` | Generar gráfico |
 | `-v`, `--verbose` | No | `False` | Mensajes DEBUG |
 | `--log_file` | No | `logs/download_data.log` | Ruta del log |
+| `--runs_file` | No | `None` | CSV con columnas `run` y `grupo`; descarga solo esos runs |
 
 ### Ejemplos
 
@@ -171,4 +191,19 @@ python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com \ --no-referenc
 2. Ejecución completa 
 ```bash
 python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com -v
+```
+
+3. Descarga de un subconjunto de runs (por ejemplo, 3 vs. 3 de un BioProject grande):
+
+```bash
+python src/download_data.py -p PRJNA801226 -e correo@ejemplo.com \
+    --runs_file PRJNA801226_aedes_samples.csv --no-reference --no-annotation --no-graphic
+```
+
+Formato mínimo del CSV (puede traer más columnas, que se ignoran):
+
+```text
+run,grupo
+SRR17845138,susceptible
+SRR17845141,resistant
 ```

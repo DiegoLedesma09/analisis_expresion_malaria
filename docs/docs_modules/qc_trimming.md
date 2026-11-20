@@ -1,5 +1,6 @@
 # Módulo para el control de calidad y limpieza de lecturas (`qc_trimming`)
 
+
 ## Resumen
 
 Este módulo automatiza el control de calidad y la limpieza de las lecturas paired-end de *Anopheles gambiae* de los grupos `resistant` y `susceptible`, previamente descargadas con `download_data.py`.

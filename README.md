@@ -71,7 +71,7 @@ analisis_expresion_malaria/
 - Conexión a internet para la descarga de datos.
 - Todas las dependencias del proyecto están definidas en el archivo [`malaria_env_linux.yml`](envs/malaria_env_linux.yml).
 
-Para instalar el entorno, ejecuta desde la raíz del proyecto:
+Para instalar el entorno, ejecute desde la raíz del proyecto:
 
 ```bash
   conda env create -f envs/malaria_env_linux.yml
@@ -104,6 +104,7 @@ proyecto/
 ## Uso
 
 El pipeline está diseñado para ejecutarse paso a paso desde la raíz del proyecto. Asegurese de tener tu entorno Conda activado antes de comenzar.
+
 Todos los scripts cuentan con una opción de ayuda detallada. Puede ejecutar el siguiente comando para ver la lista completa de argumentos disponibles:
 
 ```bash

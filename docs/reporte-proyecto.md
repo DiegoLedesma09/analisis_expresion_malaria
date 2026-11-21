@@ -96,16 +96,30 @@ Repositorio ejecutable con scripts, casos prueba, documentación, figuras regene
 | Fuente | Identificador o versión | URL | Fecha de consulta | Licencia o condiciones |
 |:--|:--|:--|:--|:--|
 | NCBI Sequence Read Archive (SRA), asociado al BioProject PRJNA170440  | SRP052073 / PRJNA170440 | https://www.ncbi.nlm.nih.gov/sra?linkname=bioproject_sra_all&from_uid=170440 | 01/09/2026 | Público. Datos de RNA-seq de Anopheles gambiae resistentes y susceptibles a deltametrina. | 
-| Publicación original (Bonizzoni et al., 2012) | PMID: 22970263 | hhttps://pubmed.ncbi.nlm.nih.gov/22970263/ | 01/09/2026 | Artículo de acceso abierto (PLoS ONE). Describe el diseño experimental y los datos depositados en SRA. | 
+| Publicación original (Bonizzoni et al., 2012) | PMID: 22970263 | https://pubmed.ncbi.nlm.nih.gov/22970263/ | 01/09/2026 | Artículo de acceso abierto (PLoS ONE). Describe el diseño experimental y los datos depositados en SRA. | 
 
 ### 8.2 Características de los datos
 
-- **Organismo y taxonomía**: *Anopheles gambiae (forma S)*.
-- **Diseño experimental / grupos**: Presentamos los análisis basados ​​en RNA-seq de los cambios transcripcionales en mosquitos *Anopheles gambiae* de África Oriental, clasificados como resistentes o susceptibles a la deltametrina según la prueba de la OMS.
-- **Origen geográfico**: Larvas colectadas en la Provincia Occidental de Kenia: localidades de Bungoma, Busia y Emutete. Año de colecta: 2012. Criadas hasta adultez en insectario del KEMRI, Kisumu.
-- **Fenotipado**: WHO tube test estándar con deltametrina (0.05%). Resistentes: vivos 24h post-exposición. Susceptibles: derribados tempranamente (knock-down), sin signos de recuperación. Genotipado individual adicional de la mutación kdr (L1014S).
-- **Datos moleculares**: Tipo de ensayo: RNA-seq. Plataforma: Illumina HiSeq2500. Tipo de lectura: pareada (paired-end). Longitud de lectura: 100 pb por extremo. Extracción de ARN: TRIzol. Lugar de secuenciación: DNA Technologies and Expression Analysis Core, UC Davis Genome Center.
-- **Referencia usada en el análisis original**
+- **Organismo y taxonomía**:
+  *Anopheles gambiae (forma S)*.
+- **Diseño experimental / grupos**:
+  Presentamos los análisis basados ​​en RNA-seq de los cambios transcripcionales en mosquitos   *Anopheles gambiae* de África Oriental, clasificados como resistentes o susceptibles a la deltametrina según la prueba de la OMS.
+- **Origen geográfico**:
+  Larvas colectadas en la Provincia Occidental de Kenia: localidades de Bungoma, Busia y Emutete.
+  Año de colecta: 2012.
+  Criadas hasta adultez en insectario del KEMRI, Kisumu.
+- **Fenotipado**:
+  WHO tube test estándar con deltametrina (0.05%).
+  Resistentes: vivos 24h post-exposición.
+  Susceptibles: derribados tempranamente (knock-down), sin signos de recuperación.
+  Genotipado individual adicional de la mutación kdr (L1014S).
+- **Datos moleculares**:
+  Tipo de ensayo: RNA-seq.
+  Plataforma: Illumina HiSeq2500.
+  Tipo de lectura: pareada (paired-end).
+  Longitud de lectura: 100 pb por extremo.
+  Extracción de ARN: TRIzol.
+  Lugar de secuenciación: DNA Technologies and Expression Analysis Core, UC Davis Genome Center.
 - **Ensamblaje:** VectorBase AgamP3
 - **Anotación:** AgamP3.7
 - **Profundidad de secuenciación**: Entre 124,918,668 y 154,463,158 lecturas alineadas por librería, sin diferencias significativas entre muestras. 
@@ -157,7 +171,7 @@ analisis_expresion_malaria/
 
 ### 9.2 Herramientas y tecnologías
 
-Para correr el programa, es necesaria la activación del ambiente **malaria_env**. [`malaria_env_linux.yml`](envs/malaria_env_linux.yml).
+Para correr el programa, es necesaria la activación del ambiente **malaria_env**. [`malaria_env_linux.yml`](../envs/malaria_env_linux.yml)
 
 El siguiente bloque de código explica cómo activar el ambiente.
 
@@ -192,9 +206,9 @@ El desarrollo de este proyecto se llevó a cabo mediante un flujo de trabajo col
 
 | Integrante | Responsabilidad principal | Responsabilidad de revisión |
 |:--|:--|:--|
-| Mónica García | [Responsabilidad] | [Qué o a quién revisará] |
-| Diego Ledesma | [Responsabilidad] | [Qué o a quién revisará] |
-| Luis Ángel Muñoz | [Responsabilidad] | [Qué o a quién revisará] |
+| Mónica García | Codificación de las funciones en cada módulo, así como la redacción de la documentación.  | Revisión de los *Pull requests*.|
+| Diego Ledesma | Gestión del repositorio: Creación de *Issues*, Ramas y *Pull requests*. Así como codificación. | Revisión del funcionamiento de cada módulo |
+| Luis Ángel Muñoz | Codificación de las funciones en cada módulo, así como la redacción de la documentación. | Revisión de los *Pull requests*.  |
 
 ### 10.2 Riesgos y alternativas
 
@@ -205,24 +219,34 @@ El desarrollo de este proyecto se llevó a cabo mediante un flujo de trabajo col
 
 ## 11. Resultados
 
-**Respecto a la pregunta 1 ¿Qué genes se sobreexpresan en resistentes frente a susceptibles?**
+A partir del análisis de enriquecimiento funcional de Gene Ontology (GO) sobre los genes diferencialmente expresados entre las condiciones resistente y susceptible de *Anopheles gambiae*, se obtuvieron perfiles funcionales diferenciados para los grupos `up_resistant` y `up_susceptible`.
 
+### Enriquecimiento funcional en `up_resistant`
+
+En el grupo `up_resistant`, los términos GO enriquecidos se concentran en plegamiento, replegamiento y estabilización de proteínas (*protein folding*, *protein folding chaperone*, *protein refolding*, *ATP-dependent protein folding chaperone*, *protein stabilization*, *regulation of protein stability*) así como en respuesta a estímulos y estrés (*response to abiotic stimulus*, *response to temperature stimulus*, *response to heat*). 
+Los valores de `padj` en los términos mostrados se encuentran aproximadamente entre valores muy bajos y ~0.011, con conteos (`k_estudio`) de alrededor de 3 a 15 genes. 
+
+### Enriquecimiento funcional en `up_susceptible`
+
+En el grupo `up_susceptible`, destacan términos asociados a actividad proteolítica e hidrolítica (*serine-type endopeptidase activity*, *serine-type peptidase activity*, *serine hydrolase activity*, *endopeptidase activity*, *proteolysis*, *peptidase activity*, *hydrolase activity*), junto con regulación/inhibición de peptidasas y región extracelular (*peptidase inhibitor activity*, *peptidase regulator activity*, *extracellular region*). 
+Los valores de `padj` en los términos mostrados se encuentran del orden de , con conteos (`k_estudio`) entre 13 y 65 genes. 
 
 ## 12. Discusión
 
-Los resultados demuestran que es posible extraer conclusiones biológicas de un dataset público con limitaciones (n=1) mediante la implementación de un flujo de trabajo robusto.
+**Limitaciones y aspectos visuales a considerar:** El enriquecimiento GO resume categorías funcionales y depende de la cobertura y calidad de las anotaciones disponibles para el organismo y de los umbrales de filtrado previos.
 
 ## 13. Conclusiones
 
+El flujo de enriquecimiento funcional GO permitió contrastar los perfiles biológicos asociados a `up_resistant` y `up_susceptible` y generar visualizaciones (`dotplot` y `barplot`) para apoyar el análisis transcriptómico. Los resultados demuestran que es posible extraer conclusiones biológicas de un dataset público con limitaciones (n=1) mediante la implementación de un flujo de trabajo robusto.
 El pipeline modular desarrollado en Python permite automatizar el análisis transcriptómico desde la descarga hasta la anotación funcional. A pesar de la falta de réplicas biológicas, el uso de herramientas como Log2FoldChange permitió identificar genes candidatos asociados a la resistencia a insecticidas en *Anopheles gambiae*, aportando un marco reproducible para futuros análisis con datos más robustos.
-
 
 ## 14. Disponibilidad, licencia y citación
 
 **Código:** [GitHub Repo](https://github.com/DiegoLedesma09/analisis_expresion_malaria)
 **Datos:** [NCBI BioProject PRJNA170440](https://www.ncbi.nlm.nih.gov/sra?linkname=bioproject_sra_all&from_uid=170440)
-**Licencia del código:** [Licencia](LICENSE)
-**Cómo citar:** [CITATION.cff](CITATION.cff)
+**Licencia del código:** [LICENSE](../LICENSE)
+**Cómo citar:** [CITATION.cff](../CITATION.cff)
+**Metadatos:** Consultar [codemeta.json](../codemeta.json)
 **Versión o release:** [v](https://github.com/DiegoLedesma09/analisis_expresion_malaria/tags)
 
 ## 15. Referencias

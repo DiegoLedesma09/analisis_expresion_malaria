@@ -15,4 +15,4 @@ dependencies:
   - hisat2=2.2.3
   - samtools
   - goatools
-
+  - mysql-connector-python

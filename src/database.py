@@ -4,7 +4,7 @@ import mysql.connector
 import pandas as pd
 
 
-def crear_base(host:str, user:str, password:str) -> None:
+def crear_base(host, user, password) -> None:
     """
     Creación de la base de datos del archivo de enriquecimiento funcional creado por
     functional_annotation.py
@@ -16,7 +16,7 @@ def crear_base(host:str, user:str, password:str) -> None:
 
     """
     # 1. Leer el archivo TSV
-    archivo_tsv = "results/go_enrichment_results.tsv"
+    archivo_tsv = "results/go/go_enrichment_results.tsv"
     df = pd.read_csv(archivo_tsv, sep="\t")
 
     # Asegurar que 'significativo' sea booleano/entero (0 o 1) para MySQL
@@ -101,10 +101,11 @@ def my_parser() -> ap.Namespace:
     """    
     parser = ap.ArgumentParser(
     description="Creación y retención de la base de datos obtenida del pipeline MOSQUITO DGE (Opcional)")
-    parser.add_argument("-h", "--host", required=True, help="ID del local host de MySQL")
+    parser.add_argument("-H", "--host", required=True, help="ID del local host de MySQL")
     parser.add_argument("-u", "--user", required=True, help="Nombre del usuario")
     parser.add_argument("-p", "--password", required=True, help="Contraseña del usuario")
-
+    
+    return parser.parse_args()
 
 def main():
     """

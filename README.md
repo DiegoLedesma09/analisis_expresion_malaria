@@ -17,94 +17,79 @@
 Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a deltametrina frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
 
 Para conocer el planteamiento, las preguntas de investigación, la metodología y
-los resultados, consulta el [reporte de proyecto](docs/reporte-proyecto.md).
+los resultados, consulte el [`reporte del proyecto`](docs/reporte-proyecto.md).
 
 ## Funcionalidades
 
-- Descarga de los datos
-- Control de calidad de las lecturas crudas.
-- Trimming y limpieza
-- Descarga del genoma de referencia y anotación
-- Alineamiento del genoma 
-- Cuantificación de expresión
-- Control de calidad post-alineamiento
-- Análisis de expresión diferencial
-- Anotación funcional y enriquecimiento
+- Descarga lecturas (FASTQ), genomas y metadatos desde NCBI utilizando un BioProject.
+- Clasifica automáticamente las muestras por fenotipo (resistente/susceptible).
+- Evalúa la calidad de las lecturas crudas y recortadas (FastQC y MultiQC).
+- Recorta adaptadores y filtra lecturas de baja calidad (Trim Galore).
+- Construye índices de referencia y alinea lecturas paired-end al genoma (HISAT2).
+- Ordena e indexa archivos de alineamiento y evalúa la tasa de éxito (samtools).
+- Cuantifica la expresión génica generando una matriz de conteos (featureCounts).
+- Ejecuta análisis de expresión diferencial con InMoose (DESeq2) o cálculo directo de Log2FC.
+- Clasifica genes sobreexpresados y subexpresados entre condiciones.
+- Realiza enriquecimiento funcional de Gene Ontology (GO) con pruebas estadísticas (goatools).
+- Genera visualizaciones automáticas: Volcano plots, PCA, Heatmaps y gráficos de enriquecimiento GO.
 
-<!--
-AYUDA:
-Describan solamente capacidades que ya funcionan. Comiencen cada elemento con un
-verbo. Las funciones planeadas deben registrarse como issues y/o en GitHub Projects.
-
-EJEMPLO:
-- Descarga genomas mediante identificadores de NCBI.
-- Lee archivos FASTA y GFF3.
-- Genera una tabla de presencia y ausencia de genes.
--->
-
-## Estructura del repositorio
+## Estructura del Proyecto
 
 ```text
-proyecto/
-├── data/            # Datos de ejemplo o archivos pequeños
-├──── curated/       # Datos curados
-├────── resistant/   # Datos de organismo resistente curados
-├────── susceptible/ # Datos de organismo susceptible curados
-├─── genome/         # Genoma del organismo
-├──── raw/           # Datos crudos
-├────── resistant/   # Datos de organismo resistente crudos
-├────── susceptible/ # Datos de organismo susceptible crudos
-├── envs/            # Ambiente del proyecto
-├── docs/            # Reporte y documentación
-├── results/         # Tablas y figuras generadas
-├── src/             # Código fuente
-├── logs/            # Archivos logs de los módulos
-├── tests/           # Pruebas
-├── CITATION.cff     # Información para citar el software
-├── LICENSE          # Licencia
-└── README.md        # Introducción y guía rápida de uso
+analisis_expresion_malaria/
+├── data/                   # Almacenamiento de datos
+│   ├── raw/                # Lecturas crudas descargadas del SRA
+│   ├── curated/            # Lecturas limpias (post-trimming) listas para alinear
+│   ├── genome/             # Genoma de referencia (FASTA) y anotación (GTF)
+│   ├── index/              # Índices construidos por HISAT2
+│   ├── aligned/            # Archivos BAM ordenados e indexados por muestra
+│   ├── counts/             # Matrices de conteos generadas por featureCounts
+│   └── go/                 # Archivos de referencia para GO (go-basic.obo, gene2go)
+├── docs/                   # Documentación del proyecto
+│   ├── docs_modules/       # Documentación detallada de cada script (.md)
+│   ├── metadata/           # Metadatos descargados de NCBI (BioProject, SRA, etc.)
+│   └── reporte-proyecto.md # Reporte final del proyecto
+├── envs/                   # Archivos YAML para crear los entornos de Conda
+├── logs/                   # Archivos .log generados por cada módulo
+├── results/                # Resultados finales para el usuario
+│   ├── exp_dif/            # Tablas de expresión diferencial (CSV, TXT)
+│   ├── go/                 # Tablas de enriquecimiento funcional (TSV)
+│   ├── fastqc/             # Reportes HTML de calidad (FastQC)
+│   └── images/             # Gráficas finales 
+├── src/                    # Código fuente (los 7 módulos del pipeline en Python)
+├── tests/                  # Pruebas
+├── CITATION.cff            
+├── LICENSE
+├── codemeta.json
+└── README.md
 ```
->
 
 ## Requisitos
 
-- Python 3.12
-- Git
-- Conexión a internet para la descarga de datos
-
-<!--
-AYUDA:
-Indiquen lo necesario antes de instalar o ejecutar el proyecto: versión de Python,
-sistema operativo si es relevante, memoria, almacenamiento o acceso a servicios.
-
-EJEMPLO:
 - Python 3.12 o posterior.
 - Git.
-- 4 GB de memoria RAM.
-- Conexión a internet para obtener datos.
+- Conexión a internet para la descarga de datos.
+- Todas las dependencias del proyecto están definidas en el archivo [`malaria_env_linux.yml`](envs/malaria_env_linux.yml).
 
-No registren usuarios, contraseñas, tokens ni llaves privadas-->
+Para instalar el entorno, ejecuta desde la raíz del proyecto:
 
+```bash
+  conda env create -f envs/malaria_env_linux.yml
+  conda activate malaria_env
+```
 
 ## Datos
 
-<!--
-AYUDA:
-Indiquen la fuente, el comando o enlace de descarga y la carpeta de destino. No
-repitan aquí la descripción completa de muestras, formatos, variables o criterios
-de selección; enlacen el reporte. Si los datos no pueden publicarse, expliquen los
-requisitos y el procedimiento autorizado para acceder a ellos.
+Los datos proceden de *NCBI Bioproject*, asociado al paper de Bonizzoni M, Afrane Y, Dunn WA, Atieli FK, Zhou G, Zhong D, Li J, Githeko A, Yan G. Comparative transcriptome analyses of deltamethrin-resistant and -susceptible Anopheles gambiae mosquitoes from Kenya by RNA-Seq. PLoS One. 2012;7(9):e44607. doi: 10.1371/journal.pone.0044607. Epub 2012 Sep 7. PMID: 22970263; PMCID: PMC3436877. Con el identificador: **PRJNA170440**. 
 
-EJEMPLO:
-Los datos proceden de NCBI RefSeq. Para descargarlos, ejecuta:
+Para su descarga este es el uso sugerido en la terminal:
 
-    python scripts/download_data.py
+```bash
+    python src/download_data.py -p PRJRNA170440 -e correo@ejemplo.com -a api_key -v
+```
 
-Los archivos se guardarán en data/raw/. Los identificadores, versiones y criterios
-de selección se documentan en docs/reporte-proyecto.md.
--->
-
-Los datos proceden de *NCBI Bioproject*, asociado al paper de Bonizzoni et al. 2015 (Parasites & Vectors, DOI: 10.1186/s13071-015-1083-z). Con el identificador: *PRJNA170440*
+Los identificadores, versiones y criterios de selección se documentan en el
+[`reporte del proyecto`](docs/reporte-proyecto.md).
 
 Estos datos serán situados en las carpetas correspondientes:
 
@@ -116,87 +101,81 @@ proyecto/
 ├────── susceptible/ # Datos de organismo susceptible crudos
 ```
 
-Uso sugerido en la terminal:
-
-    python src/download_data.py -p PJRNA170440 -e correo@ejemplo.com -a api_key -v
-
-Los archivos se guardarán en data/raw/. Los identificadores, versiones y criterios de selección se documentan en docs/reporte-proyecto.md.
-
-La procedencia y características detalladas se describen en el
-[reporte del proyecto](docs/reporte-proyecto.md).
-
 ## Uso
 
-```bash
-python src/download_data.py -p PJRNA170440 -e correo@ejemplo.com -a api_key -v
-```
-
-Este primer comando indica la descarga de los datos mediante el módulo ***download_data.py***.
-
-Los argumentos sugeridos son los siguientes:
-    -p -> Identificador del BioProject.
-    -e -> Correo electrónico del usuario para su ingreso a NCBI.
-    -a -> Api-Key para una navegación más rápida dentro de NCBI.
-    -v -> Archivo logs
-
-Los resultados se guardan en sus carpetas respectivas, es decir, los metadatos se guardan en *docs/*,
-los datos descargados se guardan en *data/* y las figuras generadas se guardan en *results/*
-
-<!--
-AYUDA:
-Incluyan al menos un ejemplo mínimo que pueda copiarse y ejecutarse. Sustituyan
-los corchetes por valores reales. Expliquen entradas, opciones importantes y
-archivos de salida sin describir toda la metodología.
-
-EJEMPLO:
-Para analizar los identificadores incluidos en data/accessions.txt:
-
-    python src/main.py --input data/accessions.txt --output results/
-
-El comando generará results/gene_matrix.csv y results/heatmap.png.
--->
-
-## Reproducción de resultados
-
-Ejecuten los siguientes pasos en el orden indicado:
+El pipeline está diseñado para ejecutarse paso a paso desde la raíz del proyecto. Asegurese de tener tu entorno Conda activado antes de comenzar.
+Todos los scripts cuentan con una opción de ayuda detallada. Puede ejecutar el siguiente comando para ver la lista completa de argumentos disponibles:
 
 ```bash
-python src/download_data.py -p PJRNA170440 -e correo@ejemplo.com -a api_key -v
-python src/multiqc_module.py
-python src/trimming_module.py
-
-# PENDIENTE
+  python src/<nombre_del_script>.py -h
 ```
 
-Los resultados esperados se generarán en `results/`.
+## Reproducción de los resultados completa
 
-<!--
-AYUDA:
-Proporcionen la ruta más corta para regenerar el resultado principal desde los
-datos originales. Los comandos deben indicar el orden correcto. Si el proceso
-requiere parámetros o archivos de configuración, indíquenlos.
-Las explicaciones científicas e interpretación de resultados pertenecen al reporte.
+### 1. Descarga de datos
 
-EJEMPLO:
-Después de ejecutar los tres comandos se crearán la tabla comparativa y las
-figuras utilizadas en el reporte. Sus nombres esperados deben indicarse aquí.
--->
+```bash
+    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com -a api_key -v
+```
 
+- `-p`: Identificador del BioProject en NCBI.
+- `-e`: Correo electrónico para Entrez.
+- `-a`: API Key para acelerar las descargas (opcional).
+- Salida: Lecturas crudas en `data/raw/`, genoma en `data/genome/` y metadatos en `docs/`.
 
-## Documentación
+### 2. Control de calidad y Trimming
 
-- El reporte contiene el problema, las preguntas, la metodología y los resultados se encuentra en: [Reporte del proyecto](docs/reporte-proyecto.md)
-- El reporte acerca de la manera correcta de citar este artículo se encuentra en: [CITATION](CITATION.cff)
+```bash
+  python src/qc_trimming.py -w 8 -o results -v
+```
 
-<!--
-AYUDA:
-Incluyan únicamente documentos que existan y comprueben sus enlaces. Agreguen
-otros documentos sólo si evitan que el README sea demasiado extenso.
+- `-w`: Número de hilos de procesamiento.
+- `-o`: Directorio de salida para los reportes.
+- Salida: Lecturas limpias (_val_*.fq) en `data/curated/` y reportes HTML en `results/fastqc/`.
 
-EJEMPLO:
-- El reporte contiene el problema, las preguntas, la metodología y los resultados.
--->
+### 3. Alineamiento
 
+```bash
+  python src/align_reads.py -r data/genome/genome_Anopheles_gambiae.fasta -i data/index/hisat2/genome -gtf data/genome/genome_Anopheles_gambiae.gtf -w 8 -v
+```
+
+- `-r`: Ruta al genoma de referencia (FASTA).
+- `-i`: Prefijo del índice de HISAT2 (se construye si no existe).
+- `-gtf`: Ruta a la anotación para extraer sitios de empalme.
+- Salida: Archivos BAM ordenados e indexados en `data/aligned/`.
+
+### 4. Cuantificación de expresión
+
+```bash
+  python src/count_features.py -gtf data/genome/genome_Anopheles_gambiae.gtf -s 0 -v
+```
+
+- `-s`: Especificidad de cadena (0=unstranded, 1=forward, 2=reverse).
+- Salida: Matriz de conteos crudos en `data/counts/` y gráfico de asignación en `results/images/`.
+
+### 5. Expresión diferencial
+
+```bash
+  python src/differential_expression.py -v
+```
+
+- `-tn`: (Opcional) Número de genes Top (default: 25).
+- Salida: Tablas de genes diferenciales en `results/exp_dif/` y gráficos en `results/images/`.
+
+### 6. Anotación funcional 
+
+```bash
+  python src/functional_annotation.py -v
+```
+
+- Requisito: Asegurese de tener go-basic.obo y gene2go en `data/go/`.
+- Salida: Tabla de términos enriquecidos en `results/go/` y gráficos en `results/images/`.
+
+## Documentación 
+
+- El [`reporte del proyecto`](docs/reporte-proyecto.md). contiene el problema, las preguntas, la metodología y los resultados.
+- La documentación técnica de cada módulo se encuentra en: [`docs/docs_modules`](docs/docs_modules).
+- El formato para citar este repositorio se encuentra en: [CITATION](CITATION.cff).
 
 ## Equipo
 
@@ -204,54 +183,32 @@ EJEMPLO:
 - Ledesma Gallegos Diego — Colaborador
 - Muñoz Muñoz Luis Angel — Colaborador
 
-<!--
-AYUDA:
-Identifiquen a las tres personas. Describan brevemente sus contribuciones generales.
-Las actividades específicas y revisiones se consultan en los issues, Pull Requests,
-GitHub Projects y el historial de Git.
-
-EJEMPLO:
-- Ana Pérez — procesamiento de datos y pruebas.
-- Luis López — análisis y visualización.
-- María García — documentación e integración.
--->
-
-## Citación #PENDIENTE
+## Citación 
 
 Si utilizas este software, consulta [CITATION.cff](CITATION.cff) o la opción
 **Cite this repository** de GitHub.
-
-<!--
-AYUDA:
-Mantengan CITATION.cff actualizado con autores, título y versión. Si el proyecto
-obtiene un DOI, añadan aquí la referencia recomendada.
-
-EJEMPLO:
-La forma recomendada de citar la versión v1.0.0 se encuentra en CITATION.cff.
--->
 
 ## Licencia
 
 ### **MIT License**
 
-Consulta MIT License [LICENSE](LICENSE) para conocer los términos de uso
+Consulta MIT License [LICENSE](LICENSE) para conocer los términos de uso.
 
 ## Agradecimientos
 
-Agradezco a mi gata Daysi por su odio hacia mi persona. Me motiva el hecho de acabar con su paciencia para seguir adelante
+Proyecto desarrollado en la Licenciatura en Ciencias Genómicas, UNAM, como parte de la asignatura de Biooython.
 
-<!--
-AYUDA:
-Esta sección es opcional. Reconozcan laboratorios, docentes, instituciones,
-proyectos o financiamientos que apoyaron el trabajo. No incluyan como autores a
-personas que sólo deban aparecer en los agradecimientos.
+Agradecemos, por su apoyo a las docentes: 
+- Dra. Verónica Jiménez
+- Dra. Leticia Vega
+- M en C. Shirley Alquicira
 
-EJEMPLO:
-Proyecto desarrollado en la Licenciatura en Ciencias Genómicas, UNAM, como parte
-de la asignatura [nombre].
--->
+Por su asesoría durante la realización del proyecto a: 
+- Pablo Salazar 
 
----
+Así como a: 
+- Mi gata Daysi por su odio hacia mi persona. Me motiva el hecho de acabar con su paciencia para seguir adelante.
+- Aquí podemos incluir la broma que planeamos para nuestra presentación ¿qué opinan?. 
 
 <!--
 LISTA DE COMPROBACIÓN ANTES DE ENTREGAR:

@@ -243,10 +243,15 @@ El pipeline modular desarrollado en Python permite automatizar el análisis tran
 ## 14. Disponibilidad, licencia y citación
 
 **Código:** [GitHub Repo](https://github.com/DiegoLedesma09/analisis_expresion_malaria)
+
 **Datos:** [NCBI BioProject PRJNA170440](https://www.ncbi.nlm.nih.gov/sra?linkname=bioproject_sra_all&from_uid=170440)
+
 **Licencia del código:** [LICENSE](../LICENSE)
+
 **Cómo citar:** [CITATION.cff](../CITATION.cff)
+
 **Metadatos:** Consultar [codemeta.json](../codemeta.json)
+
 **Versión o release:** [v](https://github.com/DiegoLedesma09/analisis_expresion_malaria/tags)
 
 ## 15. Referencias

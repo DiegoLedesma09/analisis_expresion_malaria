@@ -1,0 +1,82 @@
+{
+    "@context": "https://w3id.org/codemeta/3.0",
+    "type": "SoftwareSourceCode",
+    "applicationCategory": "Bioinformatics",
+    "author": [
+        {
+            "id": "_:author_1",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "undergraduate student in the Genomic Sciences program"
+            },
+            "email": "diegolg@lcg.unam.mx",
+            "familyName": "Ledesma Gallegos",
+            "givenName": "Diego"
+        },
+        {
+            "id": "_:author_2",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "undergraduate student in the Genomic Sciences program"
+            },
+            "email": "monicagm@lcg.unam.mx",
+            "familyName": "García Martínez",
+            "givenName": "Mónica"
+        },
+        {
+            "id": "_:author_3",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "undergraduate student in the Genomic Sciences program"
+            },
+            "email": "luismm@lcg.unam.mx",
+            "familyName": "Muñoz Muñoz",
+            "givenName": "Luis Angel"
+        }
+    ],
+    "codeRepository": "https://github.com/DiegoLedesma09/analisis_expresion_malaria",
+    "dateCreated": "2026-08-25",
+    "dateModified": "",
+    "datePublished": "",
+    "description": "Sub-herramienta modularizada para el estudio de expresión diferencial entre organismos. Especializado en la comparación entre poblaciones de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas.",
+    "funder": {
+        "type": "Organization",
+        "name": "National Autonomous University of Mexico"
+    },
+    "keywords": [
+        "bioinformatics",
+        "RNA-seq",
+        "Anopheles gambiae",
+        "malaria",
+        "transcriptomics",
+        "differential expression",
+        "gene ontology"
+    ],
+    "license": "https://spdx.org/licenses/MIT",
+    "name": "Expresión diferencial entre organismos de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas",
+    "operatingSystem": [
+        "Linux",
+        "macOS",
+        "Windows"
+    ],
+    "programmingLanguage": "Python 3",
+    "relatedLink": [
+        "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA170440",
+        "https://pubmed.ncbi.nlm.nih.gov/22970263/"
+    ],
+    "releaseNotes": "It includes modules for data downloading, quality control, alignment, read counting, differential expression, and GO enrichment.",
+    "runtimePlatform": "Python",
+    "softwareRequirements": [
+        "https://www.python.org/",
+        "https://github.com/DaehwanKimLab/hisat2",
+        "https://github.com/samtools/samtools",
+        "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
+    ],
+    "version": "v1.0.1",
+    "developmentStatus": "active",
+    "funding": "Unfunded",
+    "issueTracker": "https://github.com/DiegoLedesma09/analisis_expresion_malaria/issues"
+}

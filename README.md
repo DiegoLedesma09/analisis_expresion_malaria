@@ -17,7 +17,7 @@
 Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a deltametrina frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
 
 Para conocer el planteamiento, las preguntas de investigación, la metodología y
-los resultados, consulta el [reporte de proyecto](docs/reporte-proyecto.md).
+los resultados, consulte el [`reporte de proyecto`](docs/reporte-proyecto.md).
 
 ## Funcionalidades
 
@@ -68,39 +68,27 @@ analisis_expresion_malaria/
 
 - Python 3.12 o posterior.
 - Git.
-- Entorno Conda (ver envs/malaria_env_linux.yml) o las siguientes herramientas instaladas:
-  - FastQC y Trim Galore.
-  - HISAT2 y samtools.
-  - Subread (featureCounts).
-- Conexión a internet para la descarga de datos
+- Conexión a internet para la descarga de datos.
+- Todas las dependencias del proyecto están definidas en el archivo [`malaria_env_linux.yml`](envs/malaria_env_linux.yml).
+Para instalar el entorno, ejecuta desde la raíz del proyecto:
+
+```bash
+  conda env create -f envs/malaria_env_linux.yml
+  conda activate malaria_env
+```
 
 ## Datos
 
-<!--
-AYUDA:
-Indiquen la fuente, el comando o enlace de descarga y la carpeta de destino. No
-repitan aquí la descripción completa de muestras, formatos, variables o criterios
-de selección; enlacen el reporte. Si los datos no pueden publicarse, expliquen los
-requisitos y el procedimiento autorizado para acceder a ellos.
+Los datos proceden de *NCBI Bioproject*, asociado al paper de Bonizzoni M, Afrane Y, Dunn WA, Atieli FK, Zhou G, Zhong D, Li J, Githeko A, Yan G. Comparative transcriptome analyses of deltamethrin-resistant and -susceptible Anopheles gambiae mosquitoes from Kenya by RNA-Seq. PLoS One. 2012;7(9):e44607. doi: 10.1371/journal.pone.0044607. Epub 2012 Sep 7. PMID: 22970263; PMCID: PMC3436877. Con el identificador: **PRJNA170440**. 
 
-EJEMPLO:
-Los datos proceden de NCBI RefSeq. Para descargarlos, ejecuta:
-
-    python scripts/download_data.py
-
-Los archivos se guardarán en data/raw/. Los identificadores, versiones y criterios
-de selección se documentan en docs/reporte-proyecto.md.
--->
-
-Los datos proceden de *NCBI Bioproject*, asociado al paper de Bonizzoni M, Afrane Y, Dunn WA, Atieli FK, Zhou G, Zhong D, Li J, Githeko A, Yan G. Comparative transcriptome analyses of deltamethrin-resistant and -susceptible Anopheles gambiae mosquitoes from Kenya by RNA-Seq. PLoS One. 2012;7(9):e44607. doi: 10.1371/journal.pone.0044607. Epub 2012 Sep 7. PMID: 22970263; PMCID: PMC3436877. Con el identificador: *PRJNA170440*
-
-Para su descraga este es el uso sugerido en la terminal:
+Para su descarga este es el uso sugerido en la terminal:
 
 ```bash
-    python src/download_data.py -p PJRNA170440 -e correo@ejemplo.com -a api_key -v
+    python src/download_data.py -p PRJRNA170440 -e correo@ejemplo.com -a api_key -v
 ```
+
 Los identificadores, versiones y criterios de selección se documentan en el
-[reporte del proyecto](docs/reporte-proyecto.md).
+[`reporte del proyecto`](docs/reporte-proyecto.md).
 
 Estos datos serán situados en las carpetas correspondientes:
 
@@ -114,7 +102,14 @@ proyecto/
 
 ## Uso
 
-Para ejecutar el pipeline completo, se deben correr los módulos en el siguiente orden:
+El pipeline está diseñado para ejecutarse paso a paso desde la raíz del proyecto. Asegurese de tener tu entorno Conda activado antes de comenzar.
+Todos los scripts cuentan con una opción de ayuda detallada. Puede ejecutar el siguiente comando para ver la lista completa de argumentos disponibles:
+
+```bash
+  python src/<nombre_del_script>.py -h
+```
+
+## Reproducción de los resultados completa
 
 ### 1. Descarga de datos
 
@@ -122,36 +117,63 @@ Para ejecutar el pipeline completo, se deben correr los módulos en el siguiente
     python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com -a api_key -v
 ```
 
-Argumentos: -p (BioProject), -e (Correo NCBI), -a (API Key), -v (Verbose). Los metadatos se guardan en `docs/`, las lecturas en `data/raw/` y las gráficas en `results/`.
+- `-p`: Identificador del BioProject en NCBI.
+- `-e`: Correo electrónico para Entrez.
+- `-a`: API Key para acelerar las descargas (opcional).
+- Salida: Lecturas crudas en `data/raw/`, genoma en `data/genome/` y metadatos en `docs/`.
 
-### 2. Reproducción de resultados completa 
-
-Ejecuten los siguientes pasos en el orden indicado (desde la raíz del proyecto):
+### 2. Control de calidad y Trimming
 
 ```bash
-# 1. Descarga de datos
-    python src/download_data.py -p PRJNA170440 -e correo@ejemplo.com -v
-
-# 2. Control de calidad y Trimming
-    python src/qc_trimming.py -w 8 -v
-
-# 3. Alineamiento con HISAT2
-    python src/align_reads.py -r data/genome/genome_Anopheles_gambiae.fasta -i data/index/hisat2/genome -gtf data/genome/genome_Anopheles_gambiae.gtf -w 8 -v
-
-# 4. Conteo con featureCounts
-    python src/count_features.py -gtf data/genome/genome_Anopheles_gambiae.gtf -v
-
-# 5. Expresión diferencial (DESeq2 / Log2FC)
-    python src/differential_expression.py -v
-
-# 6. Anotación funcional (GO)
-    python src/functional_annotation.py -v
+  python src/qc_trimming.py -w 8 -o results -v
 ```
+
+- `-w`: Número de hilos de procesamiento.
+- `-o`: Directorio de salida para los reportes.
+- Salida: Lecturas limpias (_val_*.fq) en `data/curated/` y reportes HTML en `results/fastqc/`.
+
+### 3. Alineamiento
+
+```bash
+  python src/align_reads.py -r data/genome/genome_Anopheles_gambiae.fasta -i data/index/hisat2/genome -gtf data/genome/genome_Anopheles_gambiae.gtf -w 8 -v
+```
+
+- `-r`: Ruta al genoma de referencia (FASTA).
+- `-i`: Prefijo del índice de HISAT2 (se construye si no existe).
+- `-gtf`: Ruta a la anotación para extraer sitios de empalme.
+- Salida: Archivos BAM ordenados e indexados en `data/aligned/`.
+
+### 4. Cuantificación de expresión
+
+```bash
+  python src/count_features.py -gtf data/genome/genome_Anopheles_gambiae.gtf -s 0 -v
+```
+
+- `-s`: Especificidad de cadena (0=unstranded, 1=forward, 2=reverse).
+- Salida: Matriz de conteos crudos en `data/counts/` y gráfico de asignación en `results/images/`.
+
+### 5. Expresión diferencial
+
+```bash
+  python src/differential_expression.py -v
+```
+
+- `-tn`: (Opcional) Número de genes Top (default: 25).
+- Salida: Tablas de genes diferenciales en `results/exp_dif/` y gráficos en `results/images/`.
+
+### 6. Anotación funcional 
+
+```bash
+  python src/functional_annotation.py -v
+```
+
+- Requisito: Asegurese de tener go-basic.obo y gene2go en `data/go/`.
+- Salida: Tabla de términos enriquecidos en `results/go/` y gráficos en `results/images/`.
 
 ## Documentación 
 
-- El [reporte del proyecto](docs/reporte-proyecto.md). contiene el problema, las preguntas, la metodología y los resultados.
-- La documentación técnica de cada módulo se encuentra en: [docs/docs_modules](docs/docs_modules).
+- El [`reporte del proyecto`](docs/reporte-proyecto.md). contiene el problema, las preguntas, la metodología y los resultados.
+- La documentación técnica de cada módulo se encuentra en: [`docs/docs_modules`](docs/docs_modules).
 - El formato para citar este repositorio se encuentra en: [CITATION](CITATION.cff).
 
 ## Equipo
@@ -185,6 +207,7 @@ Por su asesoría durante la realización del proyecto a:
 
 Así como a: 
 - Mi gata Daysi por su odio hacia mi persona. Me motiva el hecho de acabar con su paciencia para seguir adelante.
+- Aquí podemos incluir la broma que planeamos para nuestra presentación ¿qué opinan?. 
 
 <!--
 LISTA DE COMPROBACIÓN ANTES DE ENTREGAR:

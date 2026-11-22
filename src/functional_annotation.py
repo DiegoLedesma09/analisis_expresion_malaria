@@ -57,7 +57,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from goatools.anno.genetogo_reader import Gene2GoReader
-from goatools.go_enrichment import GOEnrichmentStudyNS
+from goatools.goea.go_enrichment_ns import GOEnrichmentStudyNS
 from goatools.obo_parser import GODag
 
 logger = logging.getLogger(__name__)
@@ -76,9 +76,20 @@ def load_results(ruta_resultados: str) -> pd.DataFrame:
     if not os.path.exists(ruta_resultados):
         logger.error("No se encontró el archivo de resultados %s", ruta_resultados)
         raise FileNotFoundError(f"No se encontró el archivo de resultados: {ruta_resultados}")
-    df_res = pd.read_csv(ruta_resultados, sep="\t", index_col=0)
+    df_res = pd.read_csv(ruta_resultados, sep=",", index_col=0)
     return df_res
 
+def normalizar_gene_id(gen_id: str | int) -> int | str:
+    """
+    Convierte IDs tipo 'LOC1276231' al entero de NCBI Gene ID (1276231)
+    para empatar con las claves de Gene2GoReader.
+    """
+    s = str(gen_id).strip()
+    if s.startswith("LOC") and s[3:].isdigit():
+        return int(s[3:])
+    if s.isdigit():
+        return int(s)
+    return s
 
 def select_genes(df_res: pd.DataFrame, lfc_umbral: float = 1.0, padj_umbral: float = 0.05):
     """
@@ -101,8 +112,8 @@ def select_genes(df_res: pd.DataFrame, lfc_umbral: float = 1.0, padj_umbral: flo
     else:
         sig = df_res[df_res['log2FoldChange'].abs() >= lfc_umbral]
     
-    genes_up = sig[sig['log2FoldChange'] > 0].index.tolist()
-    genes_down = sig[sig['log2FoldChange'] < 0].index.tolist()
+    genes_up = [normalizar_gene_id(g) for g in sig[sig['log2FoldChange'] > 0].index]
+    genes_down = [normalizar_gene_id(g) for g in sig[sig['log2FoldChange'] < 0].index]
 
     return genes_up, genes_down
 
@@ -126,7 +137,7 @@ def load_go_resources(obo_path: str, gene2go_path: str, taxid:int):
     logger.info("Cargando anotaciones desde %s", gene2go_path)
     # Gene2GoReader para leer anotaciones formato gene2go (taxid 7165 para A. gambiae)
     anno_reader = Gene2GoReader(gene2go_path, taxid=taxid)
-    gene2gos = anno_reader.get_ns2gene2gos()
+    gene2gos = anno_reader.get_ns2assc()
     return godag, gene2gos
 
 def build_background(df_res: pd.DataFrame) -> set:
@@ -139,7 +150,7 @@ def build_background(df_res: pd.DataFrame) -> set:
     Returns:
         background (set) -> Set del universo sobre el que va a funcionar GO
     """
-    return set(df_res.index.tolist())
+    return {normalizar_gene_id(g) for g in df_res.index}
 
 def run_go_enrichment(genes_estudio: list[str] | set[str],
     background: set,
@@ -211,10 +222,9 @@ def run_go_enrichment(genes_estudio: list[str] | set[str],
         propagate_counts=True,
         alpha=alpha,
         methods=[method],
-        prt=None,
     )
 
-    resultados = goea.run_study(estudio_valido, prt=None)
+    resultados = goea.run_study(estudio_valido)
     col_padj = f"p_{method}"
 
     registros = []

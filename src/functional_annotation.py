@@ -64,9 +64,9 @@ import logging
 import os
 import sys
 
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from goatools.anno.genetogo_reader import Gene2GoReader
 from goatools.goea.go_enrichment_ns import GOEnrichmentStudyNS
 from goatools.obo_parser import GODag

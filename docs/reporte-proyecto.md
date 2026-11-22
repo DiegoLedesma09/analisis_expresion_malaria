@@ -226,7 +226,7 @@ A partir del análisis de enriquecimiento funcional de Gene Ontology (GO) sobre 
 En el grupo `up_resistant`, los términos GO enriquecidos se concentran en plegamiento, replegamiento y estabilización de proteínas (*protein folding*, *protein folding chaperone*, *protein refolding*, *ATP-dependent protein folding chaperone*, *protein stabilization*, *regulation of protein stability*) así como en respuesta a estímulos y estrés (*response to abiotic stimulus*, *response to temperature stimulus*, *response to heat*). 
 Los conteos de genes (`k_estudio`) van de 3 a 15 genes, y los valores de `padj` oscilan entre 0.002 y 0.011 ver [`go_dotplot_up_resistant.png`](../results/go/go_dotplot_up_resistant.png) y [`go_barplot_up_resistant.png`](../results/go/go_barplot_up_resistant.png). 
 
-### Enriquecimiento funcional en `up_susceptible`
+### Enriquecimiento funcional en `up_susceptible` (Sobreexpresados en susceptibles)
 
 En el grupo `up_susceptible`, destacan términos asociados a actividad proteolítica e hidrolítica (*serine-type endopeptidase activity*, *serine-type peptidase activity*, *serine hydrolase activity*, *endopeptidase activity*, *proteolysis*, *peptidase activity*, *hydrolase activity*), junto con regulación/inhibición de peptidasas y región extracelular (*peptidase inhibitor activity*, *peptidase regulator activity*, *extracellular region*). 
 Los conteos de genes son mucho mayores, entre 13 y 65 genes, con valores de `padj` extremadamente bajos (del orden de 1e-09), indicando una alta significancia estadística ver [`go_dotplot_up_susceptible.png`](../results/go/go_dotplot_up_susceptible.png) y [`go_barplot_up_susceptible.png`](../results/go/go_barplot_up_susceptible.png). 
@@ -256,11 +256,12 @@ Los resultados demuestran que es posible extraer conclusiones biológicas de un 
 
 **Metadatos:** Consultar [codemeta.json](../codemeta.json)
 
-**Versión o release:** [version ](https://github.com/DiegoLedesma09/analisis_expresion_malaria/tags)
+**Versión o release:** [version](https://github.com/DiegoLedesma09/analisis_expresion_malaria/tags)
 
 ## 15. Referencias
 
 1. Organización Panamericana de la Salud. (s.f.). Malaria. Recuperado el 29 de agosto de 2026, de https://www.paho.org/es/temas/malaria
-2. Bonizzoni M, Ochomo E, Dunn WA, Britton M, Afrane Y, Zhou G, Hartsel J, Lee MC, Xu J, Githeko A, Fass J, Yan G. RNA-seq analyses of changes in the Anopheles gambiae transcriptome associated with resistance to pyrethroids in Kenya: identification of candidate-resistance genes and candidate-resistance SNPs. Parasit Vectors. 2015 Sep 17;8:474. doi: 10.1186/s13071-015-1083-z. PMID: 26381877; PMCID: PMC4574070.
-3. Zoh, M.G., Bonneville, JM., Laporte, F. et al. Deltamethrin and transfluthrin select for distinct transcriptomic responses in the malaria vector Anopheles gambiae. Malar J 22, 256 (2023). https://doi.org/10.1186/s12936-023-04673-5
-4. Saizonou H, Impoinvil LM, Derilus D, Omoke D, Okeyo S, Dada N, Corredor C, Mulder N, Lenhart A, Ochomo E, Djogbénou LS. Transcriptomic analysis of Anopheles gambiae from Benin reveals overexpression of salivary and cuticular proteins associated with cross-resistance to pyrethroids and organophosphates. BMC Genomics. 2024 Apr 6;25(1):348. doi: 10.1186/s12864-024-10261-x. PMID: 38582836; PMCID: PMC10998338.
+2. Bonizzoni M, Afrane Y, Dunn WA, Atieli FK, Zhou G, Zhong D, Li J, Githeko A, Yan G. Comparative transcriptome analyses of deltamethrin-resistant and -susceptible Anopheles gambiae mosquitoes from Kenya by RNA-Seq. PLoS One. 2012;7(9):e44607. doi: 10.1371/journal.pone.0044607. Epub 2012 Sep 7. PMID: 22970263; PMCID: PMC3436877.
+3. Bonizzoni M, Ochomo E, Dunn WA, Britton M, Afrane Y, Zhou G, Hartsel J, Lee MC, Xu J, Githeko A, Fass J, Yan G. RNA-seq analyses of changes in the Anopheles gambiae transcriptome associated with resistance to pyrethroids in Kenya: identification of candidate-resistance genes and candidate-resistance SNPs. Parasit Vectors. 2015 Sep 17;8:474. doi: 10.1186/s13071-015-1083-z. PMID: 26381877; PMCID: PMC4574070.
+4. Zoh, M.G., Bonneville, JM., Laporte, F. et al. Deltamethrin and transfluthrin select for distinct transcriptomic responses in the malaria vector Anopheles gambiae. Malar J 22, 256 (2023). https://doi.org/10.1186/s12936-023-04673-5
+5. Saizonou H, Impoinvil LM, Derilus D, Omoke D, Okeyo S, Dada N, Corredor C, Mulder N, Lenhart A, Ochomo E, Djogbénou LS. Transcriptomic analysis of Anopheles gambiae from Benin reveals overexpression of salivary and cuticular proteins associated with cross-resistance to pyrethroids and organophosphates. BMC Genomics. 2024 Apr 6;25(1):348. doi: 10.1186/s12864-024-10261-x. PMID: 38582836; PMCID: PMC10998338.

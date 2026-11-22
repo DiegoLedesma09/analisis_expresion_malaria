@@ -104,7 +104,6 @@ proyecto/
 ## Uso
 
 El pipeline está diseñado para ejecutarse paso a paso desde la raíz del proyecto. Asegurese de tener tu entorno Conda activado antes de comenzar.
-
 Todos los scripts cuentan con una opción de ayuda detallada. Puede ejecutar el siguiente comando para ver la lista completa de argumentos disponibles:
 
 ```bash

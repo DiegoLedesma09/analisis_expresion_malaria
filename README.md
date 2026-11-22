@@ -206,9 +206,6 @@ Agradecemos, por su apoyo a las docentes:
 Por su asesoría durante la realización del proyecto a: 
 - Pablo Salazar 
 
-Así como a: 
-- Mi gata Daysi por su odio hacia mi persona. Me motiva el hecho de acabar con su paciencia para seguir adelante.
-- Aquí podemos incluir la broma que planeamos para nuestra presentación ¿qué opinan?. 
 
 <!--
 LISTA DE COMPROBACIÓN ANTES DE ENTREGAR:

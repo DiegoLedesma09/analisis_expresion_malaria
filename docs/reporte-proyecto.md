@@ -219,26 +219,30 @@ El desarrollo de este proyecto se llevó a cabo mediante un flujo de trabajo col
 
 ## 11. Resultados
 
-A partir del análisis de enriquecimiento funcional de Gene Ontology (GO) sobre los genes diferencialmente expresados entre las condiciones resistente y susceptible de *Anopheles gambiae*, se obtuvieron perfiles funcionales diferenciados para los grupos `up_resistant` y `up_susceptible`.
+A partir del análisis de enriquecimiento funcional de Gene Ontology (GO) sobre los genes diferencialmente expresados entre las condiciones resistente y susceptible de *Anopheles gambiae*, se obtuvieron perfiles funcionales diferenciados para ambos grupos.
 
-### Enriquecimiento funcional en `up_resistant`
+### Enriquecimiento funcional en `up_resistant` (Sobreexpresados en resistentes)
 
 En el grupo `up_resistant`, los términos GO enriquecidos se concentran en plegamiento, replegamiento y estabilización de proteínas (*protein folding*, *protein folding chaperone*, *protein refolding*, *ATP-dependent protein folding chaperone*, *protein stabilization*, *regulation of protein stability*) así como en respuesta a estímulos y estrés (*response to abiotic stimulus*, *response to temperature stimulus*, *response to heat*). 
-Los valores de `padj` en los términos mostrados se encuentran aproximadamente entre valores muy bajos y ~0.011, con conteos (`k_estudio`) de alrededor de 3 a 15 genes. 
+Los conteos de genes (`k_estudio`) van de 3 a 15 genes, y los valores de `padj` oscilan entre 0.002 y 0.011 ver [`go_dotplot_up_resistant.png`](../results/go/go_dotplot_up_resistant.png) y [`go_barplot_up_resistant.png`](../results/go/go_barplot_up_resistant.png). 
 
 ### Enriquecimiento funcional en `up_susceptible`
 
 En el grupo `up_susceptible`, destacan términos asociados a actividad proteolítica e hidrolítica (*serine-type endopeptidase activity*, *serine-type peptidase activity*, *serine hydrolase activity*, *endopeptidase activity*, *proteolysis*, *peptidase activity*, *hydrolase activity*), junto con regulación/inhibición de peptidasas y región extracelular (*peptidase inhibitor activity*, *peptidase regulator activity*, *extracellular region*). 
-Los valores de `padj` en los términos mostrados se encuentran del orden de , con conteos (`k_estudio`) entre 13 y 65 genes. 
+Los conteos de genes son mucho mayores, entre 13 y 65 genes, con valores de `padj` extremadamente bajos (del orden de 1e-09), indicando una alta significancia estadística ver [`go_dotplot_up_susceptible.png`](../results/go/go_dotplot_up_susceptible.png) y [`go_barplot_up_susceptible.png`](../results/go/go_barplot_up_susceptible.png). 
 
 ## 12. Discusión
+
+Los resultados obtenidos muestran una convergencia biológica muy interesante. En el grupo de genes sobreexpresados en los mosquitos resistentes (`up_resistant`), el enriquecimiento en vías de **plegamiento de proteínas y respuesta al calor/estrés** sugiere que los mosquitos que sobreviven al insecticida activan mecanismos de protección celular y reparación de proteínas dañadas. Esto concuerda directamente con lo reportado por Bonizzoni et al. (2012), quienes observaron una sobrerrepresentación de términos asociados a respuesta a estrés y estímulos abióticos en mosquitos resistentes a deltametrina.
+
+Por el contrario, los mosquitos susceptibles (`up_susceptible`) mostraron un enriquecimiento masivo en vías de **proteólisis y actividad peptidasa**. Biológicamente, esto sugiere un colapso celular o una respuesta de degradación de proteínas provocada por el efecto tóxico letal del insecticida. El paper original también reporta que los genes sobreexpresados en la cepa susceptible estaban enriquecidos en funciones de proteólisis, lo que refuerza la validez de nuestro pipeline.
 
 **Limitaciones y aspectos visuales a considerar:** El enriquecimiento GO resume categorías funcionales y depende de la cobertura y calidad de las anotaciones disponibles para el organismo y de los umbrales de filtrado previos.
 
 ## 13. Conclusiones
 
-El flujo de enriquecimiento funcional GO permitió contrastar los perfiles biológicos asociados a `up_resistant` y `up_susceptible` y generar visualizaciones (`dotplot` y `barplot`) para apoyar el análisis transcriptómico. Los resultados demuestran que es posible extraer conclusiones biológicas de un dataset público con limitaciones (n=1) mediante la implementación de un flujo de trabajo robusto.
-El pipeline modular desarrollado en Python permite automatizar el análisis transcriptómico desde la descarga hasta la anotación funcional. A pesar de la falta de réplicas biológicas, el uso de herramientas como Log2FoldChange permitió identificar genes candidatos asociados a la resistencia a insecticidas en *Anopheles gambiae*, aportando un marco reproducible para futuros análisis con datos más robustos.
+El flujo de enriquecimiento funcional GO permitió contrastar los perfiles biológicos entre los genes sobreexpresados en mosquitos resistentes y susceptibles, generando visualizaciones (dotplot y barplot) que apoyan el análisis transcriptómico. 
+Los resultados demuestran que es posible extraer conclusiones biológicas de un dataset público con limitaciones (n=1) mediante la implementación de un flujo de trabajo robusto. El pipeline modular desarrollado en Python permite automatizar el análisis transcriptómico desde la descarga hasta la anotación funcional. A pesar de la falta de réplicas biológicas, el uso de herramientas como Log2FoldChange y el análisis GO permitió identificar que la resistencia a insecticidas en *Anopheles gambiae* está asociada a respuestas de estrés y plegamiento proteico, mientras que la susceptibilidad se asocia a proteólisis. Esto aporta un marco reproducible para futuros análisis con datos más robustos.
 
 ## 14. Disponibilidad, licencia y citación
 
@@ -252,7 +256,7 @@ El pipeline modular desarrollado en Python permite automatizar el análisis tran
 
 **Metadatos:** Consultar [codemeta.json](../codemeta.json)
 
-**Versión o release:** [v](https://github.com/DiegoLedesma09/analisis_expresion_malaria/tags)
+**Versión o release:** [version ](https://github.com/DiegoLedesma09/analisis_expresion_malaria/tags)
 
 ## 15. Referencias
 

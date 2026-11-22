@@ -224,12 +224,12 @@ A partir del análisis de enriquecimiento funcional de Gene Ontology (GO) sobre 
 ### Enriquecimiento funcional en `up_resistant` (Sobreexpresados en resistentes)
 
 En el grupo `up_resistant`, los términos GO enriquecidos se concentran en plegamiento, replegamiento y estabilización de proteínas (*protein folding*, *protein folding chaperone*, *protein refolding*, *ATP-dependent protein folding chaperone*, *protein stabilization*, *regulation of protein stability*) así como en respuesta a estímulos y estrés (*response to abiotic stimulus*, *response to temperature stimulus*, *response to heat*). 
-Los conteos de genes (`k_estudio`) van de 3 a 15 genes, y los valores de `padj` oscilan entre 0.002 y 0.011 ver [`go_dotplot_up_resistant.png`](../results/go/go_dotplot_up_resistant.png) y [`go_barplot_up_resistant.png`](../results/go/go_barplot_up_resistant.png). 
+Los conteos de genes (`k_estudio`) van de 3 a 15 genes, y los valores de `padj` oscilan entre 0.002 y 0.011 ver [`go_dotplot_up_resistant.png`](../results/images/go_dotplot_up_resistant.png) y [`go_barplot_up_resistant.png`](../results/images/go_barplot_up_resistant.png). 
 
 ### Enriquecimiento funcional en `up_susceptible` (Sobreexpresados en susceptibles)
 
 En el grupo `up_susceptible`, destacan términos asociados a actividad proteolítica e hidrolítica (*serine-type endopeptidase activity*, *serine-type peptidase activity*, *serine hydrolase activity*, *endopeptidase activity*, *proteolysis*, *peptidase activity*, *hydrolase activity*), junto con regulación/inhibición de peptidasas y región extracelular (*peptidase inhibitor activity*, *peptidase regulator activity*, *extracellular region*). 
-Los conteos de genes son mucho mayores, entre 13 y 65 genes, con valores de `padj` extremadamente bajos (del orden de 1e-09), indicando una alta significancia estadística ver [`go_dotplot_up_susceptible.png`](../results/go/go_dotplot_up_susceptible.png) y [`go_barplot_up_susceptible.png`](../results/go/go_barplot_up_susceptible.png). 
+Los conteos de genes son mucho mayores, entre 13 y 65 genes, con valores de `padj` extremadamente bajos (del orden de 1e-09), indicando una alta significancia estadística ver [`go_dotplot_up_susceptible.png`](../results/images/go_dotplot_up_susceptible.png) y [`go_barplot_up_susceptible.png`](../results/images/go_barplot_up_susceptible.png). 
 
 ## 12. Discusión
 

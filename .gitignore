@@ -21,7 +21,9 @@ Thumbs.db
 data/
 
 # Generated results
-results/
+results/*
+!results/images/
+!results/images/go_*.png
 
 # Log files
 logs/

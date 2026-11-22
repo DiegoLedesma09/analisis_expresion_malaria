@@ -1,0 +1,14 @@
+cff-version: 
+message: "Si utiliza este software, por favor cítelo como se indica."
+title: "Expresión diferencial entre organismos de Anopheles gambiae, mosquito vector de la malaria, resistentes y susceptibles a insecticidas"
+authors:
+  - family-names: "Ledesma Gallegos"
+    given-names: "Diego"
+  - family-names: "Muñoz Muñoz"
+    given-names: "Luis Angel"
+  - family-names: "García Martínez"
+    given-names: "Mónica"
+version: 
+date-released: ""
+license: MIT
+repository-code: "https://github.com/DiegoLedesma09/analisis_expresion_malaria"

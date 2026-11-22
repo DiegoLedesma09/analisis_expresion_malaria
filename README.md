@@ -17,7 +17,7 @@
 Se analizarán los datos disponibles en la base de datos del NCBI para comparar los perfiles de expresión génica (transcriptomas) de mosquitos *Anopheles gambiae* resistentes a deltametrina frente a los susceptibles. El objetivo es identificar qué genes se expresan de manera diferencial y que, por lo tanto, podrían estar implicados en la resistencia.
 
 Para conocer el planteamiento, las preguntas de investigación, la metodología y
-los resultados, consulte el [`reporte de proyecto`](docs/reporte-proyecto.md).
+los resultados, consulte el [`reporte del proyecto`](docs/reporte-proyecto.md).
 
 ## Funcionalidades
 
@@ -70,7 +70,8 @@ analisis_expresion_malaria/
 - Git.
 - Conexión a internet para la descarga de datos.
 - Todas las dependencias del proyecto están definidas en el archivo [`malaria_env_linux.yml`](envs/malaria_env_linux.yml).
-Para instalar el entorno, ejecuta desde la raíz del proyecto:
+
+Para instalar el entorno, ejecute desde la raíz del proyecto:
 
 ```bash
   conda env create -f envs/malaria_env_linux.yml
